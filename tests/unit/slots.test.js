@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readSlots, writeSlot, summary, SLOT_COUNT, SLOTS_KEY } from '../../logic/slots.js';
+import { readSlots, writeSlot, clearSlot, summary, SLOT_COUNT, SLOTS_KEY } from '../../logic/slots.js';
 import { thumbnailSVG } from '../../logic/thumbnail.js';
 import { emptyCircuit, clone } from '../../logic/logic.js';
 import { EXAMPLES } from '../../logic/examples.js';
@@ -19,9 +19,9 @@ const halfAdder = () => clone(EXAMPLES.find((e) => e.id === 'half-adder').circui
 const fullAdder = () => clone(EXAMPLES.find((e) => e.id === 'full-adder').circuit);
 
 describe('saved circuit slots', () => {
-  test('there are five slots, empty to start', () => {
-    assert.equal(SLOT_COUNT, 5);
-    assert.deepEqual(readSlots(fakeStorage()), [null, null, null, null, null]);
+  test('there are six slots, empty to start', () => {
+    assert.equal(SLOT_COUNT, 6);
+    assert.deepEqual(readSlots(fakeStorage()), [null, null, null, null, null, null]);
   });
 
   test('a circuit saved in a slot comes back unchanged', () => {
@@ -46,11 +46,30 @@ describe('saved circuit slots', () => {
   test('an empty circuit or a bad slot number is refused', () => {
     const storage = fakeStorage();
     assert.match(writeSlot(storage, 0, emptyCircuit()).error, /nothing to save/);
-    assert.match(writeSlot(storage, 5, halfAdder()).error, /no slot/);
+    assert.match(writeSlot(storage, 6, halfAdder()).error, /no slot/);
+  });
+
+  test('a slot can be deleted without touching the others', () => {
+    const storage = fakeStorage();
+    writeSlot(storage, 0, halfAdder(), 1);
+    writeSlot(storage, 5, fullAdder(), 2);
+    assert.ok(clearSlot(storage, 0).ok);
+    const slots = readSlots(storage);
+    assert.equal(slots[0], null);
+    assert.deepEqual(slots[5].circuit, fullAdder());
+    assert.match(clearSlot(storage, 9).error, /no slot/);
+  });
+
+  test('circuits saved when there were five slots still load', () => {
+    const old = JSON.stringify([{ circuit: halfAdder(), savedAt: 1 }, null, null, null, null]);
+    const slots = readSlots(fakeStorage({ [SLOTS_KEY]: old }));
+    assert.equal(slots.length, 6);
+    assert.deepEqual(slots[0].circuit, halfAdder());
+    assert.equal(slots[5], null);
   });
 
   test('damaged saved data counts as empty', () => {
-    assert.deepEqual(readSlots(fakeStorage({ [SLOTS_KEY]: 'not json' })), [null, null, null, null, null]);
+    assert.deepEqual(readSlots(fakeStorage({ [SLOTS_KEY]: 'not json' })), [null, null, null, null, null, null]);
     const bad = JSON.stringify([{ circuit: { nodes: 'x', wires: [] }, savedAt: 1 }]);
     assert.equal(readSlots(fakeStorage({ [SLOTS_KEY]: bad }))[0], null);
   });

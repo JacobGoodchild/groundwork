@@ -12,7 +12,7 @@ import {
   WORLD, SCALE, LOCAL, SIZE, localInPin, localOutPin, inPinPos, outPinPos, curvedPath,
 } from './geometry.js';
 import { route, pathData, WIRE_STYLES } from './wiring.js';
-import { readSlots, writeSlot, summary, savedWhen } from './slots.js';
+import { readSlots, writeSlot, clearSlot, summary, savedWhen } from './slots.js';
 import { thumbnailSVG } from './thumbnail.js';
 import { setupSettingsMenu } from '../assets/settings-menu.js';
 
@@ -827,68 +827,114 @@ const slotStorage = (() => {
   }
 })();
 
+const DELETE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg>';
+
+// A question waiting for an answer: { slot, action: 'replace' | 'delete', where: 'strip' | 'dialog' }
+let asking = null;
+
 function describeSlot(i, slot) {
   return slot ? `Slot ${i + 1}: ${summary(slot.circuit)}, saved ${savedWhen(slot.savedAt)}` : `Slot ${i + 1}: empty`;
 }
 
-// The five slots beside the circuit. A filled slot loads when pressed.
+const picture = (slot) => thumbnailSVG(slot.circuit, { wireStyle: state.wireStyle });
+
+// The slots beside the circuit. A filled slot loads when pressed and has a
+// small delete button in its corner.
 function renderSlots() {
   const slots = readSlots(slotStorage);
   ui.slotList.replaceChildren(...slots.map((slot, i) => {
     const li = document.createElement('li');
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'slot';
-    b.dataset.load = i;
-    b.disabled = !slot;
+    li.className = 'slot-item';
+    if (asking?.where === 'strip' && asking.slot === i) {
+      li.innerHTML = `<div class="slot slot-asking" role="group" aria-label="Delete slot ${i + 1}?">
+          <span class="slot-question">Delete slot ${i + 1}?</span>
+          <span class="slot-question-buttons">
+            <button type="button" class="button" data-strip-delete="${i}">Delete</button>
+            <button type="button" class="button" data-strip-keep="${i}">Keep</button>
+          </span>
+        </div>`;
+      return li;
+    }
     const label = describeSlot(i, slot);
+    li.innerHTML = `<button type="button" class="slot" data-load="${i}" ${slot ? '' : 'disabled'}>
+        <span class="slot-number">${i + 1}</span>${slot ? picture(slot) : '<span class="slot-empty-label">Empty</span>'}
+      </button>${slot ? `<button type="button" class="slot-delete" data-strip-ask="${i}" aria-label="Delete slot ${i + 1}" title="Delete slot ${i + 1}">${DELETE_ICON}</button>` : ''}`;
+    const b = li.querySelector('.slot');
     b.setAttribute('aria-label', slot ? `${label}. Press to load.` : label);
     b.title = slot ? `${label}. Click to load.` : label;
-    b.innerHTML = `<span class="slot-number">${i + 1}</span>${slot ? thumbnailSVG(slot.circuit, { wireStyle: state.wireStyle }) : '<span class="slot-empty-label">Empty</span>'}`;
-    li.append(b);
     return li;
   }));
 }
 
+function deleteSlot(i) {
+  const r = clearSlot(slotStorage, i);
+  asking = null;
+  if (r.error) say(r.error, { error: true });
+  else say(`Deleted the circuit in slot ${i + 1}.`);
+  renderSlots();
+  if (ui.saveDialog.open) renderSlotCards();
+}
+
 ui.slotList.addEventListener('click', (e) => {
-  const b = e.target.closest('.slot');
-  if (!b || b.disabled) return;
-  const i = Number(b.dataset.load);
-  const slot = readSlots(slotStorage)[i];
-  if (!slot) return;
-  state.undo.push(clone(state.circuit));
-  state.redo = [];
-  loadCircuit(slot.circuit, `Loaded slot ${i + 1} (saved ${savedWhen(slot.savedAt)}). Undo goes back to the previous circuit.`);
+  const load = e.target.closest('[data-load]');
+  const ask = e.target.closest('[data-strip-ask]');
+  const yes = e.target.closest('[data-strip-delete]');
+  const no = e.target.closest('[data-strip-keep]');
+  if (ask) {
+    const i = Number(ask.dataset.stripAsk);
+    asking = { slot: i, action: 'delete', where: 'strip' };
+    renderSlots();
+    ui.slotList.querySelector(`[data-strip-keep="${i}"]`)?.focus();
+  } else if (yes) {
+    const i = Number(yes.dataset.stripDelete);
+    deleteSlot(i);
+    ui.slotList.querySelector(`[data-load="${i}"]`)?.focus();
+  } else if (no) {
+    const i = Number(no.dataset.stripKeep);
+    asking = null;
+    renderSlots();
+    ui.slotList.querySelector(`[data-strip-ask="${i}"]`)?.focus();
+  } else if (load && !load.disabled) {
+    const i = Number(load.dataset.load);
+    const slot = readSlots(slotStorage)[i];
+    if (!slot) return;
+    state.undo.push(clone(state.circuit));
+    state.redo = [];
+    loadCircuit(slot.circuit, `Loaded slot ${i + 1} (saved ${savedWhen(slot.savedAt)}). Undo goes back to the previous circuit.`);
+  }
 });
 
-// The save overlay: five large cards with a picture of what each slot holds.
-let confirming = null; // slot number waiting for "Replace?" to be answered
-
+// The save overlay: a large card for each slot, with a picture of what it holds.
 function renderSlotCards() {
   const slots = readSlots(slotStorage);
   ui.slotCards.replaceChildren(...slots.map((slot, i) => {
     const li = document.createElement('li');
-    li.className = `slot-card${confirming === i ? ' is-confirming' : ''}`;
-    const picture = `<span class="slot-card-picture">${slot ? thumbnailSVG(slot.circuit, { wireStyle: state.wireStyle }) : 'Empty'}</span>`;
-    if (confirming === i) {
+    const art = `<span class="slot-card-picture">${slot ? picture(slot) : 'Empty'}</span>`;
+    const q = asking?.where === 'dialog' && asking.slot === i ? asking.action : null;
+    li.className = `slot-card${q ? ' is-confirming' : ''}`;
+    if (q) {
+      const question = q === 'replace'
+        ? `Replace the circuit in slot ${i + 1}? It will be lost.`
+        : `Delete the circuit in slot ${i + 1}? It will be lost.`;
       li.innerHTML = `<div class="slot-confirm">
           <span class="slot-card-title">Slot ${i + 1}</span>
-          ${picture}
-          <span>Replace the circuit in slot ${i + 1}? It will be lost.</span>
+          ${art}
+          <span>${question}</span>
           <span class="slot-confirm-buttons">
-            <button type="button" class="button" data-replace="${i}">Replace</button>
-            <button type="button" class="button" data-keep="${i}">Keep it</button>
+            <button type="button" class="button" data-yes="${i}">${q === 'replace' ? 'Replace' : 'Delete'}</button>
+            <button type="button" class="button" data-no="${i}">Keep it</button>
           </span>
         </div>`;
-    } else {
-      li.innerHTML = `<button type="button" class="slot-card-pick" data-slot="${i}">
-          <span class="slot-card-title">Slot ${i + 1}</span>
-          ${picture}
-          <span class="slot-card-meta">${slot ? `${summary(slot.circuit)}<br>Saved ${savedWhen(slot.savedAt)}` : ''}</span>
-          <span class="slot-card-action">${slot ? 'Replace…' : 'Save here'}</span>
-        </button>`;
-      li.querySelector('button').setAttribute('aria-label', `${describeSlot(i, slot)}. ${slot ? 'Press to replace it.' : 'Press to save here.'}`);
+      return li;
     }
+    li.innerHTML = `<button type="button" class="slot-card-pick" data-slot="${i}">
+        <span class="slot-card-title">Slot ${i + 1}</span>
+        ${art}
+        <span class="slot-card-meta">${slot ? `${summary(slot.circuit)}<br>Saved ${savedWhen(slot.savedAt)}` : ''}</span>
+        <span class="slot-card-action">${slot ? 'Replace…' : 'Save here'}</span>
+      </button>${slot ? `<div class="slot-card-foot"><button type="button" class="button slot-card-delete" data-ask-delete="${i}">Delete</button></div>` : ''}`;
+    li.querySelector('.slot-card-pick').setAttribute('aria-label', `${describeSlot(i, slot)}. ${slot ? 'Press to replace it.' : 'Press to save here.'}`);
+    li.querySelector('.slot-card-delete')?.setAttribute('aria-label', `Delete slot ${i + 1}`);
     return li;
   }));
 }
@@ -899,7 +945,8 @@ function openSaveDialog() {
     say('The circuit is empty, so there is nothing to save.', { error: true });
     return;
   }
-  confirming = null;
+  asking = null;
+  renderSlots();
   renderSlotCards();
   ui.saveDialog.showModal();
   ui.slotCards.querySelector('button')?.focus();
@@ -907,12 +954,12 @@ function openSaveDialog() {
 
 function saveTo(i) {
   const r = writeSlot(slotStorage, i, state.circuit);
+  asking = null;
+  ui.saveDialog.close();
   if (r.error) {
-    ui.saveDialog.close();
     say(r.error, { error: true });
     return;
   }
-  ui.saveDialog.close();
   renderSlots();
   say(`Saved in slot ${i + 1}.`);
 }
@@ -922,27 +969,39 @@ ui.saveClose.addEventListener('click', () => ui.saveDialog.close());
 ui.saveDialog.addEventListener('click', (e) => {
   if (e.target === ui.saveDialog) { ui.saveDialog.close(); return; } // the backdrop
   const pick = e.target.closest('[data-slot]');
-  const replace = e.target.closest('[data-replace]');
-  const keep = e.target.closest('[data-keep]');
+  const askDelete = e.target.closest('[data-ask-delete]');
+  const yes = e.target.closest('[data-yes]');
+  const no = e.target.closest('[data-no]');
   if (pick) {
     const i = Number(pick.dataset.slot);
     if (readSlots(slotStorage)[i]) {
-      confirming = i;
+      asking = { slot: i, action: 'replace', where: 'dialog' };
       renderSlotCards();
-      ui.slotCards.querySelector(`[data-keep="${i}"]`)?.focus();
+      ui.slotCards.querySelector(`[data-no="${i}"]`)?.focus();
     } else {
       saveTo(i);
     }
-  } else if (replace) {
-    saveTo(Number(replace.dataset.replace));
-  } else if (keep) {
-    const i = Number(keep.dataset.keep);
-    confirming = null;
+  } else if (askDelete) {
+    const i = Number(askDelete.dataset.askDelete);
+    asking = { slot: i, action: 'delete', where: 'dialog' };
+    renderSlotCards();
+    ui.slotCards.querySelector(`[data-no="${i}"]`)?.focus();
+  } else if (yes) {
+    const i = Number(yes.dataset.yes);
+    if (asking?.action === 'delete') {
+      deleteSlot(i);
+      ui.slotCards.querySelector(`[data-slot="${i}"]`)?.focus();
+    } else {
+      saveTo(i);
+    }
+  } else if (no) {
+    const i = Number(no.dataset.no);
+    asking = null;
     renderSlotCards();
     ui.slotCards.querySelector(`[data-slot="${i}"]`)?.focus();
   }
 });
-ui.saveDialog.addEventListener('close', () => { confirming = null; });
+ui.saveDialog.addEventListener('close', () => { asking = null; });
 
 // ---------- Start-up ----------
 

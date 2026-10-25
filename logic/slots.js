@@ -1,10 +1,10 @@
-// Saved circuits: five numbered slots kept in the browser on this device.
+// Saved circuits: six numbered slots kept in the browser on this device.
 // No DOM code. `storage` is anything with getItem and setItem
 // (localStorage on the page, a simple stand-in in the tests).
 
 import { isValidCircuit, clone, inputs, outputs } from './logic.js';
 
-export const SLOT_COUNT = 5;
+export const SLOT_COUNT = 6;
 export const SLOTS_KEY = 'groundwork.logic.slots.v1';
 
 // Returns an array of SLOT_COUNT entries: { circuit, savedAt } or null.
@@ -23,7 +23,7 @@ export function readSlots(storage) {
   });
 }
 
-// Save a circuit into slot `index` (0 to 4). Returns { ok } or { error }.
+// Save a circuit into slot `index` (0 to SLOT_COUNT - 1). Returns { ok } or { error }.
 export function writeSlot(storage, index, circuit, now = Date.now()) {
   if (!Number.isInteger(index) || index < 0 || index >= SLOT_COUNT) return { error: 'There is no slot with that number.' };
   if (circuit.nodes.length === 0) return { error: 'The circuit is empty, so there is nothing to save.' };
@@ -33,6 +33,19 @@ export function writeSlot(storage, index, circuit, now = Date.now()) {
     storage.setItem(SLOTS_KEY, JSON.stringify(slots));
   } catch {
     return { error: 'The browser would not let this page save. Saving may be turned off, for example in a private window.' };
+  }
+  return { ok: true };
+}
+
+// Empty slot `index`. Returns { ok } or { error }.
+export function clearSlot(storage, index) {
+  if (!Number.isInteger(index) || index < 0 || index >= SLOT_COUNT) return { error: 'There is no slot with that number.' };
+  const slots = readSlots(storage);
+  slots[index] = null;
+  try {
+    storage.setItem(SLOTS_KEY, JSON.stringify(slots));
+  } catch {
+    return { error: 'The browser would not let this page change its saved circuits.' };
   }
   return { ok: true };
 }

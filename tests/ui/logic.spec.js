@@ -159,7 +159,8 @@ test.describe('logic gates tool', () => {
     await page.click('#save-open');
     const dialog = page.locator('#save-dialog');
     await expect(dialog).toBeVisible();
-    await expect(dialog.locator('.slot-card')).toHaveCount(5);
+    await expect(dialog.locator('.slot-card')).toHaveCount(6);
+    await expect(page.locator('.slot')).toHaveCount(6);
     await dialog.getByRole('button', { name: /Slot 2: empty/ }).click();
     await expect(dialog).toBeHidden();
     await expect(page.locator('#explanation')).toHaveText('Saved in slot 2.');
@@ -202,6 +203,35 @@ test.describe('logic gates tool', () => {
     await page.locator('#slot-cards [data-slot="0"]').click();
     await page.getByRole('button', { name: 'Replace', exact: true }).click();
     await expect(page.locator('[data-load="0"]')).toHaveAttribute('aria-label', /1 input, 1 gate/);
+  });
+
+  test('a slot can be deleted from the side strip or the save overlay, after a question', async ({ page }) => {
+    for (const n of ['0', '1']) {
+      await openSettings(page);
+      await page.click('#save-open');
+      await page.locator(`#slot-cards [data-slot="${n}"]`).click();
+    }
+    await expect(page.locator('.slot-delete')).toHaveCount(2);
+
+    // Side strip: ask, keep, then ask again and delete.
+    await page.getByRole('button', { name: 'Delete slot 1' }).click();
+    await expect(page.getByText('Delete slot 1?')).toBeVisible();
+    await page.getByRole('button', { name: 'Keep', exact: true }).click();
+    await expect(page.locator('[data-load="0"]')).toBeEnabled();
+    await page.getByRole('button', { name: 'Delete slot 1' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(page.locator('[data-load="0"]')).toBeDisabled();
+    await expect(page.locator('#explanation')).toHaveText('Deleted the circuit in slot 1.');
+
+    // Save overlay.
+    await openSettings(page);
+    await page.click('#save-open');
+    await page.locator('#slot-cards').getByRole('button', { name: 'Delete slot 2' }).click();
+    await expect(page.getByText('Delete the circuit in slot 2? It will be lost.')).toBeVisible();
+    await page.locator('#slot-cards').getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(page.locator('#slot-cards [data-slot="1"]')).toContainText('Save here');
+    await expect(page.locator('[data-load="1"]')).toBeDisabled();
+    await expect(page.locator('.slot-delete')).toHaveCount(0);
   });
 
   test('the gate reference lists all six gates', async ({ page }) => {

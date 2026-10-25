@@ -169,7 +169,7 @@
 
 @media (max-width: 60rem) {
   .circuit-grid { grid-template-columns: 1fr; }
-  .slot-list { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .slot-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* Small truth tables inside the reference table: undo the reference table's cell styles. */
@@ -243,7 +243,7 @@ table.ref.gate-ref .truth-table th { color: var(--text-muted); font-weight: 600;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
 }
 .slot-card {
@@ -272,7 +272,7 @@ table.ref.gate-ref .truth-table th { color: var(--text-muted); font-weight: 600;
 .slot-card-pick:hover { background: var(--surface-sunk); }
 .slot-card-title { font-weight: 600; font-size: var(--text-base); }
 .slot-card-picture {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 2 / 1;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
@@ -282,8 +282,48 @@ table.ref.gate-ref .truth-table th { color: var(--text-muted); font-weight: 600;
   font-size: var(--text-sm);
 }
 .slot-card-picture .thumb { padding: 6px; }
+.slot-card { position: relative; }
+.slot-card-foot { position: absolute; top: var(--space-2); right: var(--space-2); }
+.slot-card-delete { font-size: var(--text-sm); min-height: 0; padding: 2px var(--space-2); }
 .slot-card-meta { font-size: var(--text-sm); color: var(--text-muted); min-height: 2.6em; }
 .slot-card-action { font-size: var(--text-sm); color: var(--accent); font-weight: 600; }
 .slot-card.is-confirming { border-color: var(--error); }
 .slot-confirm { padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--text-sm); }
 .slot-confirm-buttons { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+/* Delete button in the corner of a filled slot, and the "Delete?" question. */
+.slot-item { position: relative; }
+.slot-delete {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.slot-delete svg { width: 0.8rem; height: 0.8rem; }
+.slot-delete:hover, .slot-delete:focus-visible { color: var(--error); border-color: var(--error); }
+.slot-asking {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-color: var(--error);
+  cursor: default;
+  text-align: center;
+}
+.slot-question { font-size: 0.75rem; color: var(--text); }
+.slot-question-buttons { display: flex; gap: 4px; justify-content: center; }
+.slot-question-buttons .button { min-height: 0; padding: 2px 6px; font-size: 0.7rem; }
+
+@media (max-width: 40rem) {
+  .slot-cards { grid-template-columns: 1fr; }
+}
