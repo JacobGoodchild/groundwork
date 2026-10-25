@@ -44,6 +44,8 @@
   --error: #b3261e;
   --error-soft: #fbe9e7;
   --focus: #0b6b64;
+  --go: #1d7a3a;
+  --go-text: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -63,6 +65,8 @@
     --error: #ff8a80;
     --error-soft: #3a1f1d;
     --focus: #5cc2b5;
+    --go: #4cbb68;
+    --go-text: #0c1f12;
   }
 }
 
@@ -257,6 +261,37 @@ button.button {
   color: var(--accent-text);
 }
 .button.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.1); }
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.icon-button svg { width: 1.25rem; height: 1.25rem; }
+.icon-button:hover:not(:disabled) { background: var(--surface-sunk); }
+.icon-button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* The one green button: Run. */
+.icon-button.go { background: var(--go); border-color: var(--go); color: var(--go-text); }
+.icon-button.go:hover:not(:disabled) { background: var(--go); filter: brightness(1.1); }
+.icon-button.go .icon-pause, .icon-button.go[aria-pressed="true"] .icon-play { display: none; }
+.icon-button.go[aria-pressed="true"] .icon-pause { display: block; }
+
+/* Settings cog turns when its menu opens. */
+.icon-button.cog { border-color: transparent; background: transparent; color: var(--text-muted); }
+.icon-button.cog:hover, .icon-button.cog[aria-expanded="true"] { color: var(--text); background: var(--surface-sunk); }
+.icon-button.cog[aria-expanded="true"] svg { transform: rotate(60deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .icon-button.cog svg { transition: transform 0.3s ease; }
+}
 
 .button-group { display: inline-flex; }
 .button-group .button { border-radius: 0; margin-left: -1px; }
@@ -511,7 +546,7 @@ table.ref th, table.ref td {
   border-bottom: 1px solid var(--border);
 }
 table.ref th { color: var(--text-muted); font-weight: 600; }
-table.ref td:first-child, table.ref td:last-child { font-family: var(--font-code); white-space: nowrap; }
+table.ref td:first-child { font-family: var(--font-code); white-space: nowrap; }
 
 @media (max-width: 40rem) {
   table.ref thead { display: none; }
@@ -519,5 +554,4 @@ table.ref td:first-child, table.ref td:last-child { font-family: var(--font-code
   table.ref tr { padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
   table.ref td { border: 0; padding: 0; }
   table.ref td:first-child { font-weight: 600; }
-  table.ref td:last-child::before { content: "Example: "; font-family: var(--font-text); color: var(--text-muted); }
 }

@@ -24,12 +24,12 @@ function oneError(source, options) {
 }
 
 describe('machine model', () => {
-  test('has 13 registers and 26 memory slots, all zero to start', () => {
+  test('has 13 registers and 13 memory slots, all zero to start', () => {
     const m = new Machine();
     assert.equal(REGISTER_COUNT, 13);
-    assert.equal(MEMORY_SIZE, 26);
+    assert.equal(MEMORY_SIZE, 13);
     assert.deepEqual(m.registers, new Array(13).fill(0));
-    assert.deepEqual(m.memory, new Array(26).fill(0));
+    assert.deepEqual(m.memory, new Array(13).fill(0));
     assert.equal(m.pc, 0);
     assert.equal(m.comparison, null);
   });
@@ -47,8 +47,8 @@ describe('instructions', () => {
   });
 
   test('STR stores into memory', () => {
-    const m = run('MOV R1, #9\nSTR R1, 25\nHALT');
-    assert.equal(m.memory[25], 9);
+    const m = run('MOV R1, #9\nSTR R1, 12\nHALT');
+    assert.equal(m.memory[12], 9);
   });
 
   test('ADD with immediate and register', () => {
@@ -345,9 +345,9 @@ describe('error messages', () => {
   });
 
   test('memory address out of range', () => {
-    assert.equal(oneError('LDR R1, 26'), 'Line 1: Memory address 26 is out of range. Addresses go from 0 to 25.');
+    assert.equal(oneError('LDR R1, 13'), 'Line 1: Memory address 13 is out of range. Addresses go from 0 to 12.');
     assert.match(oneError('STR R1, 100'), /Memory address 100 is out of range/);
-    assert.deepEqual(errorsFor('LDR R1, 25\nHALT'), []);
+    assert.deepEqual(errorsFor('LDR R1, 12\nHALT'), []);
   });
 
   test('immediate values must be denary and fit the word size', () => {
@@ -376,10 +376,11 @@ describe('example programs', () => {
     return run(ex.code, { memory: memoryOverride ?? ex.memory });
   }
 
-  test('every example has a comment on its first line and parses cleanly', () => {
+  test('every example has a title, ends with HALT and parses cleanly', () => {
     assert.equal(EXAMPLES.length, 6);
     for (const ex of EXAMPLES) {
-      assert.match(ex.code.split('\n')[0], /^\/\/ \S/);
+      assert.ok(ex.title.length > 0, ex.id);
+      assert.match(ex.code.trim(), /HALT$/, ex.id);
       assert.deepEqual(parse(ex.code).errors, [], ex.id);
     }
   });

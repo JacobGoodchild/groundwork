@@ -21,6 +21,7 @@ Every page links `assets/style.css`. New tools should use its tokens and compone
 | Layout | `--page-width`, `--prose-width`, `--radius` | |
 | Colour | `--bg`, `--surface`, `--surface-sunk`, `--text`, `--text-muted`, `--border`, `--border-strong` | Neutral, warm greys. |
 | Accent | `--accent`, `--accent-text`, `--accent-soft` | One teal accent. Use it for links, the primary button, the current line and changed values. Nowhere else. |
+| Run | `--go`, `--go-text` | Green, used only for the Run button. |
 | Meaning | `--read-mark`, `--current-line`, `--error`, `--error-soft`, `--focus` | |
 
 Dark mode redefines the colour tokens inside `@media (prefers-color-scheme: dark)`. Never hard-code a colour in a page; add a token instead.
@@ -30,6 +31,7 @@ Dark mode redefines the colour tokens inside `@media (prefers-color-scheme: dark
 - **Site frame**: `.site-header` (site name left, quiet "See more" link right), `main`, `.site-footer`. Copy the header and footer markup from an existing page.
 - **Text pages**: `main.prose` limits text to a readable width. `.entry-list` for lists of links with a description; `.section-label` for small uppercase group headings; `.tag` for an understated label.
 - **Panels**: `.panel` with a `.panel-title`. `.info-line` for a small explanatory note at the bottom.
+- **Icon buttons**: `.icon-button` is a square button holding one inline SVG icon. It always has an `aria-label` and a `title`. `.icon-button.go` is the green Run button (its play and pause icons swap on `aria-pressed`). `.icon-button.cog` is the settings toggle; it turns when `aria-expanded` is true.
 - **Buttons**: `.button`, `.button.primary` (one per toolbar at most), `.button-group` for joined pairs. `.toolbar` lays out controls; `.field` wraps a label and its control.
 - **Code editor**: `.code-editor` containing `.code-gutter` (line numbers) and `.code-area` (`.code-backdrop` behind a transparent `textarea.code-input`). Mark lines with `.is-current` or `.has-error` on the gutter and backdrop rows.
 - **Errors**: `.error-list` under the editor.

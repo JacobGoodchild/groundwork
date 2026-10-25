@@ -21,6 +21,7 @@ const ui = {
   code: $('code'), gutter: $('gutter'), backdrop: $('backdrop'), errors: $('errors'),
   registers: $('registers'), memory: $('memory'), pc: $('pc'), comparison: $('comparison'),
   explanation: $('explanation'), history: $('history'),
+  settingsToggle: $('settings-toggle'), settingsMenu: $('settings-menu'),
 };
 
 const state = {
@@ -287,7 +288,7 @@ function prepare() {
   state.runtimeErrorLine = null;
   if (program.errors.length) {
     const n = program.errors.length;
-    say(`The program has ${n === 1 ? 'an error' : `${n} errors`}, listed under the editor. Fix ${n === 1 ? 'it' : 'them'}, then press Step again.`, { error: true });
+    say(`The program has ${n === 1 ? 'an error' : `${n} errors`}, listed under the editor.`, { error: true });
     state.dirty = true;
     render();
     return false;
@@ -353,7 +354,9 @@ function render() {
   ui.step.disabled = state.running || finished;
   ui.stepBack.disabled = state.running || state.dirty || m.history.length === 0;
   ui.run.disabled = !state.running && finished;
-  ui.run.textContent = state.running ? 'Pause' : 'Run';
+  const runLabel = state.running ? 'Pause' : 'Run';
+  ui.run.setAttribute('aria-label', runLabel);
+  ui.run.title = runLabel;
   ui.run.setAttribute('aria-pressed', String(state.running));
   ui.code.readOnly = state.running;
   for (const el of [ui.examples, ui.format, ui.wordSize, ui.regZero, ui.regRandom, ui.memZero, ui.memRandom]) {
@@ -431,7 +434,7 @@ function tick() {
 function toggleRun() {
   if (state.running) {
     stop();
-    say('Paused. Press Run to carry on, or Step to run one instruction.', { log: false });
+    say('Paused.', { log: false });
     render();
     return;
   }
@@ -499,7 +502,7 @@ function loadExample(id) {
   if (prepare()) {
     const set = Object.keys(ex.memory);
     const setText = set.length === 0 ? '' : ` Memory address${set.length > 1 ? 'es' : ''} ${set.join(' and ')} ${set.length > 1 ? 'have' : 'has'} been given starting values.`;
-    say(`Loaded "${ex.title}".${setText} Press Step to run the first instruction.`);
+    say(`Loaded "${ex.title}".${setText}`);
   }
   save();
   render();
@@ -526,8 +529,35 @@ ui.memZero.addEventListener('click', () => setStart('mem', new Array(MEMORY_SIZE
 ui.memRandom.addEventListener('click', () => setStart('mem', randomValues(MEMORY_SIZE), 'Memory set to random values.'));
 
 ui.examples.addEventListener('change', () => {
-  loadExample(ui.examples.value);
+  const id = ui.examples.value;
   ui.examples.value = '';
+  closeSettings(false);
+  loadExample(id);
+});
+
+// ---------- Settings menu ----------
+
+function openSettings() {
+  ui.settingsMenu.hidden = false;
+  ui.settingsToggle.setAttribute('aria-expanded', 'true');
+}
+
+function closeSettings(returnFocus = true) {
+  if (ui.settingsMenu.hidden) return;
+  ui.settingsMenu.hidden = true;
+  ui.settingsToggle.setAttribute('aria-expanded', 'false');
+  if (returnFocus) ui.settingsToggle.focus();
+}
+
+ui.settingsToggle.addEventListener('click', () => {
+  if (ui.settingsMenu.hidden) openSettings();
+  else closeSettings(false);
+});
+document.addEventListener('click', (e) => {
+  if (!ui.settingsMenu.hidden && !e.target.closest('.settings')) closeSettings(false);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !ui.settingsMenu.hidden) closeSettings();
 });
 
 ui.format.addEventListener('change', () => {
@@ -560,6 +590,22 @@ ui.code.addEventListener('scroll', syncScroll);
 
 // ---------- Start-up ----------
 
+// Programs saved before the examples lost their comments are swapped for the
+// new version of the same example.
+function stripComments(code) {
+  return code.split('\n').map((l) => l.replace(/\/\/.*$/, '').trim()).filter(Boolean).join('\n');
+}
+
+function upgradeSavedCode(code) {
+  if (!code.includes('//')) return code;
+  const match = EXAMPLES.find((e) => stripComments(e.code) === stripComments(code));
+  return match ? match.code : code;
+}
+
+function fit(values, length) {
+  return Array.from({ length }, (_, i) => values[i] ?? 0);
+}
+
 function start() {
   const saved = loadSaved();
   const m = state.machine;
@@ -567,12 +613,12 @@ function start() {
     if (WORD_SIZES.includes(saved.wordSize)) m.setWordSize(saved.wordSize);
     if (FORMAT_NAMES[saved.format]) state.format = saved.format;
     try {
-      if (Array.isArray(saved.registers) && saved.registers.length === REGISTER_COUNT) m.setInitialRegisters(saved.registers);
-      if (Array.isArray(saved.memory) && saved.memory.length === MEMORY_SIZE) m.setInitialMemory(saved.memory);
+      if (Array.isArray(saved.registers)) m.setInitialRegisters(fit(saved.registers, REGISTER_COUNT));
+      if (Array.isArray(saved.memory)) m.setInitialMemory(fit(saved.memory, MEMORY_SIZE));
     } catch {
       // Ignore saved values that no longer fit.
     }
-    ui.code.value = saved.code;
+    ui.code.value = upgradeSavedCode(saved.code);
   } else {
     const first = EXAMPLES[0];
     ui.code.value = first.code;

@@ -3,7 +3,7 @@
 // by later parts of the workshop.
 
 export const REGISTER_COUNT = 13;
-export const MEMORY_SIZE = 26;
+export const MEMORY_SIZE = 13;
 export const STEP_LIMIT = 10000;
 export const WORD_SIZES = [8, 16, 32];
 export const DEFAULT_WORD_SIZE = 8;

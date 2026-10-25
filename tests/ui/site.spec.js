@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 const reg = (page, n) => page.locator('#registers .cell').nth(n).locator('.cell-value');
 const mem = (page, a) => page.locator('#memory .cell').nth(a).locator('.cell-value');
+const openSettings = async (page) => {
+  if (await page.locator('#settings-menu').isHidden()) await page.click('#settings-toggle');
+};
 
 test.describe('home page', () => {
   test('shows the site name, a description and the tool list', async ({ page }) => {
@@ -51,16 +54,20 @@ test.describe('assembly simulator', () => {
   });
 
   test('opens ready to use with the first example loaded', async ({ page }) => {
-    await expect(page.locator('#code')).toHaveValue(/Load two values from memory/);
+    await expect(page.locator('#code')).toHaveValue(/^  LDR R0, 0\n/);
+    await expect(page.locator('#code')).not.toHaveValue(/\/\//);
     await expect(page.locator('#registers .cell')).toHaveCount(13);
-    await expect(page.locator('#memory .cell')).toHaveCount(26);
+    await expect(page.locator('#memory .cell')).toHaveCount(13);
     await expect(page.locator('#comparison')).toHaveText('No comparison yet');
-    await expect(page.locator('#gutter .is-current')).toHaveText('3');
+    await expect(page.locator('#gutter .is-current')).toHaveText('1');
+    await expect(page.locator('#explanation')).toBeEmpty();
   });
 
   test('typing a program and stepping updates registers, memory and the explanation', async ({ page }) => {
     await page.fill('#code', 'MOV R1, #7\nADD R3, R1, #5\nSTR R3, 4\nCMP R3, #20\nHALT');
+    await openSettings(page);
     await page.click('#memory-zero');
+    await page.keyboard.press('Escape');
 
     await page.click('#step');
     await expect(reg(page, 1)).toHaveText('7');
@@ -110,16 +117,21 @@ test.describe('assembly simulator', () => {
   });
 
   test('Run reaches HALT and shows the result', async ({ page }) => {
+    await openSettings(page);
     await page.selectOption('#examples', 'multiply');
+    await expect(page.locator('#settings-menu')).toBeHidden();
+    await openSettings(page);
     await page.fill('#speed', '10');
+    await page.keyboard.press('Escape');
     await page.click('#run');
     await expect(mem(page, 2)).toHaveText('42');
     await expect(page.locator('#explanation')).toHaveText('HALT: the program has stopped.');
-    await expect(page.locator('#run')).toHaveText('Run');
+    await expect(page.locator('#run')).toHaveAttribute('aria-label', 'Run');
   });
 
   test('an endless loop is stopped after 10,000 instructions', async ({ page }) => {
     await page.fill('#code', 'loop: B loop');
+    await openSettings(page);
     await page.fill('#speed', '10');
     await page.click('#run');
     await expect(page.locator('#explanation')).toHaveText('Stopped after 10,000 instructions. Your program may be stuck in a loop.');
@@ -136,6 +148,7 @@ test.describe('assembly simulator', () => {
   test('number format and word size change how values are shown', async ({ page }) => {
     await page.click('#step');
     await expect(reg(page, 0)).toHaveText('12');
+    await openSettings(page);
     await page.selectOption('#format', 'bin');
     await expect(reg(page, 0)).toHaveText('0000 1100');
     await page.selectOption('#format', 'hex');
@@ -155,5 +168,30 @@ test.describe('assembly simulator', () => {
   test('the instruction reference opens', async ({ page }) => {
     await page.getByText('Instruction reference').click();
     await expect(page.locator('table.ref tbody tr')).toHaveCount(15);
+  });
+});
+
+test.describe('simulator settings menu', () => {
+  test('the cog opens and closes the settings menu', async ({ page }) => {
+    await page.goto('assembly/');
+    const toggle = page.locator('#settings-toggle');
+    await expect(page.locator('#settings-menu')).toBeHidden();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByLabel('Speed')).toBeVisible();
+    await expect(page.getByLabel('Word size')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#settings-menu')).toBeHidden();
+    await expect(toggle).toBeFocused();
+  });
+
+  test('the Log is collapsible and the reference uses the AQA wording', async ({ page }) => {
+    await page.goto('assembly/');
+    await expect(page.locator('#log')).toHaveAttribute('open', '');
+    await page.locator('#log summary').click();
+    await expect(page.locator('#log')).not.toHaveAttribute('open', '');
+    await page.getByText('Instruction reference').click();
+    await expect(page.getByText('Stops the execution of the program.')).toBeVisible();
+    await expect(page.getByText('The available general purpose registers that the programmer can use are numbered 0 to 12.')).toBeVisible();
   });
 });

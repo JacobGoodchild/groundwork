@@ -4,7 +4,7 @@
 
 - **Site shell**: home page (`/`), "Other projects" page (`/projects/`), shared header (site name left, quiet "See more" right) and footer. Shared stylesheet `assets/style.css`, documented in `STYLE.md`.
 - **Assembly simulator** (`/assembly/`):
-  - `assembly/aqa.js`: parser and machine with no DOM code. Exports `parse`, `Machine`, `assemble`, `runToEnd`, `formatError` and the constants `REGISTER_COUNT` (13), `MEMORY_SIZE` (26), `STEP_LIMIT` (10,000) and `WORD_SIZES`.
+  - `assembly/aqa.js`: parser and machine with no DOM code. Exports `parse`, `Machine`, `assemble`, `runToEnd`, `formatError` and the constants `REGISTER_COUNT` (13), `MEMORY_SIZE` (13), `STEP_LIMIT` (10,000) and `WORD_SIZES`.
   - `assembly/examples.js`: the six example programs, with starting memory values.
   - `assembly/app.js`: the page. Editor with line numbers, current-line and error highlighting; registers, memory, program counter and last comparison; Step, Step back, Run/Pause with speed, Reset; Zero/Random starting values; number format; word size; examples; explanation with a history of the last 20 steps; click-to-edit values; instruction reference; saving to localStorage.
 - **Tests**: 63 unit tests (`tests/unit/aqa.test.js`) and 12 Playwright tests (`tests/ui/site.spec.js`). All pass locally.
@@ -52,3 +52,13 @@ The AQA document does not cover the following, so these are this simulator's own
 - Build the logic-gate / Boolean algebra tool using the same stylesheet and components.
 - Later, connect the workshop CPU to `aqa.js`: the `Machine` class is the natural place to expose fetch, decode and execute as separate stages, and to move the program into memory (Von Neumann) as an option.
 - Possible simulator extras, if wanted: a shareable link that encodes the program, keyboard shortcuts for Step and Step back, and an "explain this error" link to the reference row.
+
+## Second round of changes (owner's requests)
+
+- **IDE-style layout.** The top bar holds the title and icon buttons: green Run/Pause, Reset, then Step back and Step. A settings cog at the top right opens a menu with Speed, Example, Registers, Memory, Number format and Word size. The cog turns when the menu opens. Program counter and Last comparison are two separate boxes under the bar. The Program panel is wider and taller.
+- **Removed teaching text**: the line under the title, the Von Neumann note under memory and the "click to edit" hint. Editing values by clicking still works.
+- **Log**: renamed from "What happened". It now sits below the program and above the instruction reference, is collapsible (open by default) and starts empty.
+- **Memory is now 13 slots** (addresses 0 to 12). Saved starting values from the old 26-slot version are cut down to fit.
+- **Instruction reference** now uses the exact wording of the AQA instruction set sheet, including its "Labels" and "Interpretation of <operand2>" sections, and nothing else.
+- **Comments**: the AQA instruction set doesn't define a comment syntax, and the assembly programs in AQA past papers (A-level Paper 2, November 2020 to June 2023) have no comments. They put labels on their own line and indent instructions by two spaces. The default program and all the examples now follow that style with no comments. The simulator still quietly ignores anything after `//`, so a student's own notes don't cause errors, but the page doesn't advertise it.
+- **Second colour**: the Run button is green (`--go` token), at the owner's request. Teal stays the accent everywhere else.
