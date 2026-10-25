@@ -8,6 +8,7 @@ import {
 } from './logic.js';
 import { EXAMPLES } from './examples.js';
 import { gateShape, gateSymbolSVG, GATE_WIDTH, GATE_HEIGHT, PIN_Y, OUT_Y } from './shapes.js';
+import { route, pathData, WIRE_STYLES } from './wiring.js';
 import { setupSettingsMenu } from '../assets/settings-menu.js';
 
 const STORAGE_KEY = 'groundwork.logic.v1';
@@ -29,7 +30,7 @@ const SIZE = Object.fromEntries(Object.entries(LOCAL).map(([k, v]) => [k, { w: v
 const $ = (id) => document.getElementById(id);
 const ui = {
   palette: $('palette'), undo: $('undo'), redo: $('redo'), del: $('delete'),
-  examples: $('examples'), showLabels: $('show-labels'), clear: $('clear'),
+  examples: $('examples'), showLabels: $('show-labels'), wireStyle: $('wire-style'), clear: $('clear'),
   expressions: $('expressions'), canvas: $('canvas'), wrap: $('canvas-wrap'),
   wires: $('wires'), nodes: $('nodes'), pending: $('pending-wire'),
   truth: $('truth'), explanation: $('explanation'), history: $('history'),
@@ -48,13 +49,14 @@ const state = {
   redo: [],
   log: [],
   labels: true,
+  wireStyle: 'curved',
 };
 
 // ---------- Saving ----------
 
 function save() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit: state.circuit, labels: state.labels }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit: state.circuit, labels: state.labels, wireStyle: state.wireStyle }));
   } catch {
     // Storage may be unavailable; the tool still works.
   }
@@ -163,6 +165,16 @@ const outPinPos = (node) => toWorld(node, localOutPin(node));
 function wirePath(a, b) {
   const dx = Math.max(30, Math.abs(b.x - a.x) / 2);
   return `M${a.x} ${a.y} C${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
+}
+
+// The wire that follows the pointer while you draw one, in the chosen style.
+function previewPath(a, b) {
+  if (state.wireStyle === 'straight') return `M${a.x} ${a.y} L${b.x} ${b.y}`;
+  if (state.wireStyle === 'right-angle') {
+    const mid = Math.round((a.x + b.x) / 2);
+    return `M${a.x} ${a.y} H${mid} V${b.y} H${b.x}`;
+  }
+  return wirePath(a, b);
 }
 
 function clamp(node, x, y) {
@@ -288,18 +300,29 @@ function drawNode(node, values) {
 }
 
 function drawWires(values) {
-  const items = [];
-  for (const w of state.circuit.wires) {
-    const a = outPinPos(getNode(state.circuit, w.from));
-    const b = inPinPos(getNode(state.circuit, w.to), w.pin);
-    const d = wirePath(a, b);
+  const ends = state.circuit.wires.map((w) => ({
+    key: `${w.to}:${w.pin}`,
+    source: w.from,
+    a: outPinPos(getNode(state.circuit, w.from)),
+    b: inPinPos(getNode(state.circuit, w.to), w.pin),
+  }));
+  // Curved wires are drawn as before; the straight styles are routed, with
+  // hops where different signals cross and dots where one signal splits.
+  const routed = state.wireStyle === 'curved' ? null : route(ends, state.wireStyle);
+
+  const items = state.circuit.wires.map((w, i) => {
+    const { key, a, b } = ends[i];
+    const d = routed ? pathData(routed.wires.get(key)) : wirePath(a, b);
     const selected = state.selected?.type === 'wire' && state.selected.to === w.to && state.selected.pin === w.pin;
     const g = el('g', { class: `wire-group${selected ? ' is-selected' : ''}`, 'data-to': w.to, 'data-pin': w.pin });
     el('path', { d, class: 'wire-hit' }, g);
     el('path', { d, class: `wire ${valueClass(values.get(w.from))}` }, g);
-    items.push(g);
-  }
-  ui.wires.replaceChildren(...items);
+    return g;
+  });
+  const dots = (routed?.junctions ?? []).map((j) => el('circle', {
+    cx: j.x, cy: j.y, r: 4, class: `junction ${valueClass(values.get(j.source))}`,
+  }));
+  ui.wires.replaceChildren(...items, ...dots);
 }
 
 function drawPending() {
@@ -308,9 +331,9 @@ function drawPending() {
     return;
   }
   if (state.pending.from) {
-    ui.pending.setAttribute('d', wirePath(outPinPos(getNode(state.circuit, state.pending.from)), state.pointer));
+    ui.pending.setAttribute('d', previewPath(outPinPos(getNode(state.circuit, state.pending.from)), state.pointer));
   } else {
-    ui.pending.setAttribute('d', wirePath(state.pointer, inPinPos(getNode(state.circuit, state.pending.to), state.pending.pin)));
+    ui.pending.setAttribute('d', previewPath(state.pointer, inPinPos(getNode(state.circuit, state.pending.to), state.pending.pin)));
   }
 }
 
@@ -764,6 +787,18 @@ ui.examples.addEventListener('change', () => {
   loadCircuit(ex.circuit, `Loaded example: ${ex.title}.`);
 });
 
+for (const [value, label] of Object.entries(WIRE_STYLES)) {
+  const opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = label;
+  ui.wireStyle.append(opt);
+}
+ui.wireStyle.addEventListener('change', () => {
+  state.wireStyle = ui.wireStyle.value;
+  save();
+  render();
+});
+
 ui.showLabels.addEventListener('change', () => {
   state.labels = ui.showLabels.checked;
   save();
@@ -808,10 +843,12 @@ function start() {
   if (saved && isValidCircuit(saved.circuit)) {
     state.circuit = clone(saved.circuit);
     state.labels = saved.labels !== false;
+    if (WIRE_STYLES[saved.wireStyle]) state.wireStyle = saved.wireStyle;
   } else {
     state.circuit = clone(EXAMPLES[0].circuit);
   }
   ui.showLabels.checked = state.labels;
+  ui.wireStyle.value = state.wireStyle;
   render();
 }
 

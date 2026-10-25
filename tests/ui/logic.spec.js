@@ -137,6 +137,22 @@ test.describe('logic gates tool', () => {
     await expect(lamp(page, 'S')).toHaveText('1');
   });
 
+  test('wires can be drawn with right angles or straight, with hops and junction dots', async ({ page }) => {
+    await expect(page.locator('.wire').first()).toHaveAttribute('d', / C/);
+    await openSettings(page);
+    await page.selectOption('#wire-style', 'right-angle');
+    for (const d of await page.locator('.wire').evaluateAll((els) => els.map((e) => e.getAttribute('d')))) {
+      expect(d).not.toMatch(/ C/);
+    }
+    await expect(page.locator('.junction')).not.toHaveCount(0);
+    await expect(page.locator('.wire[d*=" A"]')).not.toHaveCount(0);
+
+    await page.selectOption('#wire-style', 'straight');
+    await expect(page.locator('.junction')).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('#wire-style')).toHaveValue('straight');
+  });
+
   test('the gate reference lists all six gates', async ({ page }) => {
     await page.getByText('Gate reference').click();
     await expect(page.locator('#gate-ref > tbody > tr')).toHaveCount(6);

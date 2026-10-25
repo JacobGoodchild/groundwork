@@ -90,3 +90,12 @@ Not done yet / ideas for next time:
 ## Deploy fix
 
 The first logic gates deploy left `logic/` off the live site, because the workflow copied a fixed list of folders. The deploy now copies everything except development files (tests, scripts, Markdown, npm and Playwright files), and fails if any page linked from the home page is missing.
+
+## Wire styles (logic gates)
+
+Settings has a **Wires** option: Curved (the default), Right angles, or Straight.
+- `logic/wiring.js` (DOM-free, tested in `tests/unit/wiring.test.js`) routes the two straight styles.
+- **Right angles:** each signal gets one vertical run. Its position is chosen by trying spots either side of the midpoint and keeping the one that sits clear of other signals, crosses them least, and avoids near misses: a wire passing just past the end of another, which looks like a join.
+- **Hops:** where two different signals cross, a small arc is drawn. With right angles it goes on the horizontal wire (and also on any near miss that's left); with straight lines it goes on the wire drawn later.
+- **Junction dots:** drawn wherever one signal splits into branches (three or more arms meeting), so a join always looks different from a crossing.
+- Curved wires don't get hops; curves cross at an angle, which already reads as a crossing. If it's wanted, curves could be split into short straight pieces and given hops too.

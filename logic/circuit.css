@@ -110,6 +110,13 @@
 .wire.is-unknown { stroke: var(--text-muted); stroke-dasharray: 5 5; }
 .wire.pending { stroke: var(--focus); stroke-dasharray: 4 4; }
 .wire-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
+.wire { stroke-linejoin: round; }
+
+/* Junction dot: one signal splitting into branches. */
+.junction { stroke: none; pointer-events: none; }
+.junction.is-on { fill: var(--accent); }
+.junction.is-off { fill: var(--border-strong); }
+.junction.is-unknown { fill: var(--text-muted); }
 .wire-group.is-selected .wire { stroke-width: 4; filter: drop-shadow(0 0 2px var(--focus)); }
 .wire-group.is-selected .wire.is-off { stroke: var(--text); }
 
