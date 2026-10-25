@@ -33,6 +33,7 @@ The AQA document does not cover the following, so these are this simulator's own
 - **Explanations** always use denary, and add grouped binary for AND, ORR, EOR, MVN, LSL and LSR. The register and memory boxes use the selected format.
 - **Fastest speed** runs 250 instructions between redraws, so the 10,000-instruction limit is reached in about a second.
 - **Projects page**: the two black-hole preprints (records 23136697 and 23136851) were fetched from Zenodo, and their real titles are used. The one-line descriptions were written from their abstracts, so you may want to reword them.
+- **Other projects page (updated)**: now laid out as two columns of clickable boxes. Papers (titles only) and libraries are on the left; Apex Ring (with its cover image from itch.io, saved as `projects/images/apex-ring.jpg`), Desk Piano and Air Violin are on the right. Home Roads and mathrun were removed at the owner's request. On a phone the columns stack.
 - Footer: "Groundwork follows the AQA A-level Computer Science specification (7517). It is not made or endorsed by AQA."
 
 ## Before the site goes live

@@ -7,22 +7,37 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
-const container = document.getElementById('project-list');
-container.replaceChildren();
+function card(item, group) {
+  const link = el('a', { class: 'project-card', href: item.url, target: '_blank', rel: 'noopener' });
+  if (item.image) {
+    link.classList.add('has-image');
+    link.append(el('img', { src: item.image, alt: item.imageAlt ?? '', loading: 'lazy', width: '840', height: '667' }));
+  }
+  const title = el('span', { class: 'project-title' }, item.title);
+  const heading = el('span', { class: 'project-heading' }, title);
+  if (item.label) heading.append(el('span', { class: 'tag' }, item.label));
+  const body = el('span', { class: 'project-body' }, heading);
+  if (item.description) body.append(el('span', { class: 'project-description' }, item.description));
+  body.append(
+    el('span', { class: 'project-meta' }, item.type ?? group.type),
+    el('span', { class: 'visually-hidden' }, ' (opens in a new tab)'),
+  );
+  link.append(body);
+  return link;
+}
+
+const columns = {
+  left: document.getElementById('projects-left'),
+  right: document.getElementById('projects-right'),
+};
+document.getElementById('project-list').querySelector('noscript')?.remove();
 
 for (const group of PROJECT_GROUPS) {
-  container.append(el('h2', { class: 'section-label' }, group.heading));
-  const list = el('ul', { class: 'entry-list' });
-  for (const item of group.items) {
-    const link = el('a', { class: 'entry-title', href: item.url, target: '_blank', rel: 'noopener' }, item.title);
-    const heading = el('div', {}, link);
-    if (item.label) heading.append(el('span', { class: 'tag' }, item.label));
-    list.append(el('li', {},
-      heading,
-      el('p', {}, item.description),
-      el('p', { class: 'entry-meta' }, item.type ?? group.type),
-    ));
-  }
-  container.append(list);
-  if (group.note) container.append(el('p', { class: 'small muted' }, group.note));
+  const section = el('section', { class: 'project-group' });
+  section.append(el('h2', { class: 'section-label' }, group.heading));
+  const list = el('ul', { class: 'project-cards' });
+  for (const item of group.items) list.append(el('li', {}, card(item, group)));
+  section.append(list);
+  if (group.note) section.append(el('p', { class: 'small muted project-note' }, group.note));
+  columns[group.column ?? 'left'].append(section);
 }

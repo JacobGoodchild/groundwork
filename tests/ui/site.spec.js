@@ -26,18 +26,19 @@ test.describe('home page', () => {
 });
 
 test.describe('see more page', () => {
-  test('lists all 11 projects, each opening in a new tab', async ({ page }) => {
+  test('lists all 9 projects, each opening in a new tab', async ({ page }) => {
     await page.goto('projects/');
     const links = page.locator('#project-list a');
-    await expect(links).toHaveCount(11);
+    await expect(links).toHaveCount(9);
     for (const link of await links.all()) {
       await expect(link).toHaveAttribute('target', '_blank');
       await expect(link).toHaveAttribute('href', /^https:\/\//);
     }
-    for (const name of ['Papers', 'Libraries', 'Games and interactive projects', 'Tools']) {
+    for (const name of ['Papers', 'Libraries', 'Games and interactive projects']) {
       await expect(page.getByRole('heading', { name })).toBeVisible();
     }
-    await expect(page.locator('.tag', { hasText: 'Early Access – Still Under Construction' })).toHaveCount(2);
+    await expect(page.locator('.tag', { hasText: 'Early Access – Still Under Construction' })).toHaveCount(1);
+    await expect(page.getByRole('img', { name: /Apex Ring/ })).toBeVisible();
     await expect(page.getByText('They have not been peer reviewed.')).toBeVisible();
   });
 });
