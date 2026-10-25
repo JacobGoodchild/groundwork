@@ -4,7 +4,7 @@
 const input = (id, name, x, y) => ({ id, kind: 'input', name, x, y, value: 0 });
 const output = (id, name, x, y) => ({ id, kind: 'output', name, x, y });
 const gate = (id, type, x, y) => ({ id, kind: 'gate', type, x, y });
-const wire = (from, to, pin = 0) => ({ from, to, pin });
+const wire = (from, to, pin = 0) => ({ from, fromPin: 0, to, pin });
 
 export const EXAMPLES = [
   {
@@ -106,3 +106,6 @@ export const EXAMPLES = [
     },
   },
 ];
+
+// Every example circuit is complete in the current format (no components).
+for (const ex of EXAMPLES) ex.circuit.components = {};

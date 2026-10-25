@@ -32,6 +32,10 @@
         <button type="button" class="icon-button" id="delete" aria-label="Delete selected" title="Delete selected (Delete)">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 13h9l1-13"/></svg>
         </button>
+        <span class="toolbar-gap" aria-hidden="true"></span>
+        <button type="button" class="icon-button check-button" id="check" aria-label="Check against the target" title="Check against the target" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </button>
       </div>
 
       <div class="settings">
@@ -39,6 +43,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
         <div class="settings-menu" id="settings-menu" hidden>
+          <label for="target">Target</label>
+          <select id="target">
+            <option value="">None</option>
+          </select>
+
           <label for="examples">Example</label>
           <select id="examples">
             <option value="">Choose an example…</option>
@@ -53,6 +62,7 @@
           <span>Circuit</span>
           <span class="settings-actions">
             <button type="button" class="button" id="save-open">Save circuit…</button>
+            <button type="button" class="button" id="components-open">Components…</button>
             <button type="button" class="button" id="clear">Clear circuit</button>
           </span>
         </div>
@@ -68,7 +78,12 @@
       </section>
 
       <section class="panel" aria-labelledby="canvas-title">
-        <h2 class="panel-title" id="canvas-title">Circuit</h2>
+        <div class="canvas-head">
+          <button type="button" class="icon-button back-button" id="back" aria-label="Back out of this component" title="Back (Escape)" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <h2 class="panel-title" id="canvas-title">Circuit</h2>
+        </div>
         <div class="canvas-wrap" id="canvas-wrap">
           <svg class="circuit show-labels" id="canvas" viewBox="0 0 960 540" role="group" aria-label="Circuit diagram">
             <g id="wires"></g>
@@ -95,6 +110,24 @@
         <p class="dialog-note">Choose a slot. Saved circuits stay in this browser, on this device.</p>
         <ol class="slot-cards" id="slot-cards"></ol>
       </div>
+    </dialog>
+
+    <dialog class="dialog components-dialog" id="components-dialog" aria-labelledby="components-title">
+      <div class="dialog-head">
+        <h2 id="components-title">Components</h2>
+        <button type="button" class="icon-button" id="components-close" aria-label="Close" title="Close (Escape)">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <p class="dialog-note">A component is a circuit boxed up so it can be used as one part. Its pins are the circuit's inputs and outputs, top to bottom.</p>
+      <form class="component-form" id="component-form">
+        <label for="component-name">Name</label>
+        <input type="text" id="component-name" maxlength="14" placeholder="HALF ADDER" autocomplete="off" spellcheck="false">
+        <button type="submit" class="button primary">Make component from this circuit</button>
+      </form>
+      <p class="component-error" id="component-error" role="alert"></p>
+      <h3 class="section-label">Your components</h3>
+      <ul class="component-list" id="component-list"></ul>
     </dialog>
 
     <details class="reference log" id="log" open>

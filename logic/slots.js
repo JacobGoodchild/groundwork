@@ -2,7 +2,7 @@
 // No DOM code. `storage` is anything with getItem and setItem
 // (localStorage on the page, a simple stand-in in the tests).
 
-import { isValidCircuit, clone, inputs, outputs } from './logic.js';
+import { isValidCircuit, normalise, clone, inputs, outputs } from './logic.js';
 
 export const SLOT_COUNT = 6;
 export const SLOTS_KEY = 'groundwork.logic.slots.v1';
@@ -19,7 +19,7 @@ export function readSlots(storage) {
   return Array.from({ length: SLOT_COUNT }, (_, i) => {
     const slot = Array.isArray(data) ? data[i] : null;
     if (!slot || !isValidCircuit(slot.circuit) || typeof slot.savedAt !== 'number') return null;
-    return { circuit: slot.circuit, savedAt: slot.savedAt };
+    return { circuit: normalise(slot.circuit), savedAt: slot.savedAt };
   });
 }
 
@@ -53,7 +53,7 @@ export function clearSlot(storage, index) {
 // A short description of a circuit: "2 inputs, 3 gates, 1 output".
 export function summary(circuit) {
   const count = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
-  const gates = circuit.nodes.filter((n) => n.kind === 'gate').length;
+  const gates = circuit.nodes.filter((n) => n.kind === 'gate' || n.kind === 'component').length;
   return [count(inputs(circuit).length, 'input'), count(gates, 'gate'), count(outputs(circuit).length, 'output')].join(', ');
 }
 

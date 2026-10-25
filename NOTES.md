@@ -112,3 +112,26 @@ Settings has a **Wires** option: Curved (the default), Right angles, or Straight
 ## Subscripts in names
 
 Input and output names written as one capital letter followed by lowercase letters or digits are shown with the ending as a subscript, as in exam papers: `Cin` is shown as C<sub>in</sub>, `Cout` as C<sub>out</sub>, `A1` as A<sub>1</sub>. This applies on the canvas, in the expressions, in truth table headings and in slot pictures. Names are still typed and stored as plain text (`Cin`), and the log uses the plain form. Done with HTML `<sub>` and an SVG `tspan`, not LaTeX, so no extra library is needed. The rule is `nameParts()` in `logic/logic.js`.
+
+## Components and checks (roadmap item 1)
+
+### In the core (`logic/logic.js`, all unit-tested)
+- **Wires record which output they leave from** (`fromPin`), because a component can have several outputs. Old saved circuits and slots are upgraded on load by `normalise()`.
+- **Components.** `makeComponent(circuit, name, id)` turns a circuit into a definition: name, input pin names, output pin names (each ordered top to bottom as on the canvas) and a copy of the circuit. A circuit needs at least one input and one output, and every output must be connected back to the inputs. `addComponent()` places one on a circuit. The definition is copied into the circuit's own `components`, so a saved circuit always carries everything it needs, and deleting a component from the library never breaks a circuit. A definition nothing uses any more is removed. Components can contain components (up to 20 deep).
+- **Simulation.** `simulate()` returns every node's output values and, for each component, the simulation of its inside, so the page can show live values inside a box. `evaluate()` still returns one value per node for simple uses.
+- **Expressions look through components**, so an output's Boolean expression is always written in terms of the circuit's own inputs.
+- **Checks.** `check(circuit, target)` tests every row of the truth table (or a list of test cases, for bigger circuits) and reports the first problem in plain English with real values: a missing or extra input or output by name, an output with no value, or "When A = 1 and B = 1, your circuit outputs S = 1. It should be 0." It returns the failing inputs so the page can show them.
+- **The 5-input and 4-output limits moved out of the core** into the logic page (the workshop needs bigger circuits).
+
+### In the logic tool
+- **Settings → Components…** makes a component from the current circuit and lists your components, each with a Delete button. Components are kept in this browser (`logic/library.js`, up to 12). Making one with the same name as an existing one replaces it.
+- **Your components appear in the tool bar** after the six gates. A placed component is a box with its pin names inside the edges and its name above.
+- **Opening a component:** double-click it, or press Enter when it is focused. The canvas shows its inside with live values, a dashed border, a title trail ("Circuit › HALF ADDER") and a Back button (or Escape). Inside is read-only. Components inside it can be opened in turn. The truth table and expressions show the component's own circuit while you are inside.
+- **Settings → Target** picks something to build: NOT, AND, OR, XOR, NAND, NOR, Half adder or Full adder (`logic/targets.js`). Its goal shows in the status strip and a **Check** button appears. A failed check sets the inputs to the failing case so the wrong value is on screen; the Check button turns green or red until the next edit.
+- **Double-clicks** are now spotted by the page itself (two clicks on one part within 350 ms), because the browser's own event doesn't fire after the first click on an input redraws the circuit, and is unreliable on touch screens. A double-click on an input renames it without switching it.
+
+### Not done yet
+- Hints after a failed check (VISION 3.2) belong with the workshop levels.
+- Restricting which parts a target may use (for example "build XOR from NAND gates only") is for the workshop; the sandbox lets you use anything.
+- A component can't be edited after it is made. Rebuild the circuit and make it again with the same name to replace it (circuits already using the old one keep their copy).
+- The inside view shows the component as it was built. Moving its parts around on screen is not possible.

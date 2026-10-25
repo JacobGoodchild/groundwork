@@ -1,4 +1,7 @@
-// ANSI/IEEE 91-1984 distinctive-shape gate symbols, as SVG path data.
+// ANSI/IEEE 91-1984 distinctive-shape gate symbols, as SVG path data, and
+// the box drawn for a component.
+
+import { nameParts } from './logic.js';
 // Every gate is drawn in a 64 x 44 box: input leads come in from the left
 // at the pin positions below, and the output lead leaves at (64, 22).
 
@@ -40,4 +43,36 @@ export function gateSymbolSVG(type, { width = 64, height = 44, strokeWidth = 2 }
   ];
   if (s.bubble) parts.push(`<circle cx="${s.bubble.cx}" cy="22" r="${s.bubble.r}" class="bubble"/>`);
   return `<svg class="gate-symbol" viewBox="-1 -1 66 46" width="${width}" height="${height}" aria-hidden="true" stroke-width="${strokeWidth}">${parts.join('')}</svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Component boxes
+// ---------------------------------------------------------------------------
+
+const escape = (text) => String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+// A name as SVG text content: Cin becomes C with a smaller, lower "in".
+export function svgNameMarkup(name) {
+  const { main, sub } = nameParts(name);
+  return sub ? `${escape(main)}<tspan class="name-sub" dy="0.3em">${escape(sub)}</tspan>` : escape(name);
+}
+
+/**
+ * SVG markup for a component box, in the node's own coordinates:
+ * the box, its pin leads, pin names inside the edges and its name above.
+ * box = { w, h, lead, ins: [{ name, y }], outs: [{ name, y }], name }
+ */
+export function componentBoxSVG(box) {
+  const { w, h, lead, ins, outs, name } = box;
+  const parts = [`<rect class="body box" x="${lead}" y="0" width="${w - 2 * lead}" height="${h}" rx="3"/>`];
+  for (const p of ins) {
+    parts.push(`<path class="lead" d="M0 ${p.y} H${lead}"/>`);
+    parts.push(`<text class="pin-name" x="${lead + 3}" y="${p.y + 3}">${svgNameMarkup(p.name)}</text>`);
+  }
+  for (const p of outs) {
+    parts.push(`<path class="lead" d="M${w - lead} ${p.y} H${w}"/>`);
+    parts.push(`<text class="pin-name end" x="${w - lead - 3}" y="${p.y + 3}">${svgNameMarkup(p.name)}</text>`);
+  }
+  parts.push(`<text class="box-name" x="${w / 2}" y="-4">${escape(name)}</text>`);
+  return parts.join('');
 }

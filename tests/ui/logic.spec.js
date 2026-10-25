@@ -16,6 +16,8 @@ test.describe('logic gates tool', () => {
 
   test('opens with a half adder ready to use', async ({ page }) => {
     await expect(page.locator('h1')).toHaveText('Logic gates');
+    await expect(page.locator('#back')).toBeHidden();
+    await expect(page.locator('#check')).toBeHidden();
     await expect(page.locator('.node-gate')).toHaveCount(2);
     await expect(page.locator('#expressions')).toContainText('S = A ⊕ B');
     await expect(page.locator('#expressions')).toContainText('C = A.B');
@@ -111,6 +113,14 @@ test.describe('logic gates tool', () => {
     await gate.focus();
     await page.keyboard.press('ArrowDown');
     await expect(gate).not.toHaveAttribute('transform', before);
+  });
+
+  test('inputs can be renamed by double-clicking', async ({ page }) => {
+    await switchFor(page, 'B').dblclick();
+    await expect(switchFor(page, 'B').locator('.node-value')).toHaveText('0'); // not switched
+    await page.locator('input.rename').fill('Y');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#expressions')).toContainText('S = A ⊕ Y');
   });
 
   test('inputs can be renamed with F2', async ({ page }) => {
@@ -232,6 +242,106 @@ test.describe('logic gates tool', () => {
     await expect(page.locator('#slot-cards [data-slot="1"]')).toContainText('Save here');
     await expect(page.locator('[data-load="1"]')).toBeDisabled();
     await expect(page.locator('.slot-delete')).toHaveCount(0);
+  });
+
+  test('box up a half adder, build a full adder from two of them, check it and look inside', async ({ page }) => {
+    // 1. The half adder (loaded by default) becomes a component.
+    await openSettings(page);
+    await page.click('#components-open');
+    await page.fill('#component-name', 'HALF ADDER');
+    await page.getByRole('button', { name: 'Make component from this circuit' }).click();
+    await expect(page.locator('#components-dialog')).toBeHidden();
+    await expect(page.locator('#explanation')).toContainText('Made the HALF ADDER component (inputs A, B; outputs S, C)');
+    const addHalfAdder = page.getByRole('button', { name: 'Add a HALF ADDER component' });
+    await expect(addHalfAdder).toBeVisible();
+
+    // 2. A full adder from two HALF ADDERs and an OR gate.
+    await openSettings(page);
+    await page.click('#clear');
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Add an input' }).click();
+    await switchFor(page, 'C').focus();
+    await page.keyboard.press('F2');
+    await page.locator('input.rename').fill('Cin');
+    await page.keyboard.press('Enter');
+    await addHalfAdder.click();
+    await addHalfAdder.click();
+    await page.getByRole('button', { name: 'Add a OR gate' }).click();
+    for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Add an output' }).click();
+    for (const [from, to] of [['Q', 'S'], ['R', 'Cout']]) {
+      await page.locator('.node-output', { has: page.locator('.node-name', { hasText: new RegExp(`^${from}$`) }) }).focus();
+      await page.keyboard.press('F2');
+      await page.locator('input.rename').fill(to);
+      await page.keyboard.press('Enter');
+    }
+    await expect(page.locator('.node-component')).toHaveCount(2);
+
+    // Half adder pins: in 0 = A, in 1 = B; out 0 = S, out 1 = C.
+    const wire = async (a, b) => { await page.locator(`[data-key="${a}"]`).click(); await page.locator(`[data-key="${b}"]`).click(); };
+    await wire('pin:in1:out:0', 'pin:c1:in:0');
+    await wire('pin:in2:out:0', 'pin:c1:in:1');
+    await wire('pin:c1:out:0', 'pin:c2:in:0');
+    await wire('pin:in3:out:0', 'pin:c2:in:1');
+    await wire('pin:c2:out:0', 'pin:out1:in:0');
+    await wire('pin:c1:out:1', 'pin:g1:in:0');
+    await expect(page.locator('#explanation')).toHaveText('Connected HALF ADDER 1 (output C) to OR gate (input 1).');
+    await wire('pin:c2:out:1', 'pin:g1:in:1');
+    await wire('pin:g1:out:0', 'pin:out2:in:0');
+    await expect(page.locator('#expressions')).toContainText('S = (A ⊕ B) ⊕ Cin');
+
+    // 3. Check against the full adder target.
+    await openSettings(page);
+    await page.selectOption('#target', 'full-adder');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#expressions')).toContainText('Target: Full adder');
+    await page.click('#check');
+    await expect(page.locator('#explanation')).toHaveText('Check passed: all 8 rows of the truth table match Full adder.');
+    await expect(page.locator('#check')).toHaveAttribute('data-result', 'pass');
+
+    // 4. Look inside the first half adder, with live values, then come back.
+    await switchFor(page, 'A').click();
+    await page.locator('.node-component').first().dblclick();
+    await expect(page.locator('#canvas-title')).toHaveText('Circuit › HALF ADDER');
+    await expect(page.locator('#back')).toBeVisible();
+    await expect(page.locator('.node-gate')).toHaveCount(2);
+    await expect(lamp(page, 'S')).toHaveText('1');
+    await expect(page.locator('#palette button').first()).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#canvas-title')).toHaveText('Circuit');
+    await expect(page.locator('#back')).toBeHidden();
+    await expect(page.locator('.node-component')).toHaveCount(2);
+  });
+
+  test('a failed check explains the first wrong row and sets the inputs to it', async ({ page }) => {
+    await openSettings(page);
+    await page.selectOption('#target', 'and');
+    await page.keyboard.press('Escape');
+    await page.click('#check');
+    await expect(page.locator('#explanation')).toHaveText('Your circuit needs an output called Q. Add it, or rename an output with F2.');
+    await expect(page.locator('#check')).toHaveAttribute('data-result', 'fail');
+
+    await openSettings(page);
+    await page.selectOption('#target', 'half-adder');
+    await page.keyboard.press('Escape');
+    // Swap the XOR for an OR: wrong when A = 1 and B = 1.
+    await page.locator('.node-gate').first().click();
+    await page.click('#delete');
+    await page.getByRole('button', { name: 'Add a OR gate' }).click();
+    const wire = async (a, b) => { await page.locator(`[data-key="${a}"]`).click(); await page.locator(`[data-key="${b}"]`).click(); };
+    await wire('pin:in1:out:0', 'pin:g1:in:0');
+    await wire('pin:in2:out:0', 'pin:g1:in:1');
+    await wire('pin:g1:out:0', 'pin:out1:in:0');
+    await page.click('#check');
+    await expect(page.locator('#explanation')).toHaveText('When A = 1 and B = 1, your circuit outputs S = 1. It should be 0.');
+    await expect(switchFor(page, 'A').locator('.node-value')).toHaveText('1');
+    await expect(switchFor(page, 'B').locator('.node-value')).toHaveText('1');
+  });
+
+  test('the tool allows up to five inputs', async ({ page }) => {
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Add an input' }).click();
+    await expect(page.locator('.node-input')).toHaveCount(5);
+    await page.getByRole('button', { name: 'Add an input' }).click();
+    await expect(page.locator('.node-input')).toHaveCount(5);
+    await expect(page.locator('#explanation')).toHaveText('This tool allows up to 5 inputs, so the truth table stays readable.');
   });
 
   test('the gate reference lists all six gates', async ({ page }) => {

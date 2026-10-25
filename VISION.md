@@ -205,10 +205,10 @@ Matches what the owner asked for: a code area, registers R0 to R12, buttons to f
 ### Logic gates (`/logic/`): built (sandbox)
 
 A free circuit builder with the six AQA gates, truth table and Boolean expression. For the workshop it will need:
-- **Custom components** (3.1): save a circuit as a component with named pins, use it in another circuit, open it to see inside.
+- **Custom components** (3.1): save a circuit as a component with named pins, use it in another circuit, open it to see inside. **Built** (roadmap item 1).
 - **Multi-bit buses** (3.3).
 - **Feedback and a clock** for flip-flops (Chapter 4). The sandbox currently refuses feedback; the workshop will need a separate evaluation mode that allows it with a clock.
-- **Checks** against a target truth table or test cases (3.2).
+- **Checks** against a target truth table or test cases (3.2). **Built** (roadmap item 1); hints are not built yet and belong with the workshop.
 
 These belong in `logic/logic.js` (DOM-free, unit-tested) so both the sandbox and the workshop can use them.
 
@@ -233,7 +233,7 @@ These belong in `logic/logic.js` (DOM-free, unit-tested) so both the sandbox and
 
 ### Suggested order
 
-1. Logic core: custom components (save, reuse, open to look inside) and checks against target behaviour. Update the logic sandbox to use them.
+1. Logic core: custom components (save, reuse, open to look inside) and checks against target behaviour. Update the logic sandbox to use them. **Done.**
 2. Workshop shell: chapter and level structure, progress saving and export, the level layout (goal, parts, check, hint, reference, log), and Chapters 0 and 1.
 3. Chapters 2 and 3 (Boolean algebra, arithmetic, the ALU). Add buses to the logic core.
 4. Chapter 4 (memory, feedback, clock, flip-flop, registers, RAM).

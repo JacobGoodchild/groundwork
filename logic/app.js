@@ -3,23 +3,30 @@
 
 import {
   GATE_TYPES, GATES, emptyCircuit, clone, addNode, removeNode, removeWire, connect, rename,
-  evaluate, truthTable, expression, needsBrackets, SYMBOLS, getNode, pinCount, hasOutput,
-  inputs, outputs, describe, isValidCircuit, wireInto, nameParts,
+  simulate, truthTable, expression, needsBrackets, SYMBOLS, getNode, pinCount, outCount,
+  inputs, outputs, describe, isValidCircuit, normalise, wireInto, nameParts, definitionOf,
+  makeComponent, addComponent, check,
 } from './logic.js';
 import { EXAMPLES } from './examples.js';
-import { gateShape, gateSymbolSVG, GATE_WIDTH, GATE_HEIGHT } from './shapes.js';
+import { TARGETS } from './targets.js';
+import { readLibrary, addToLibrary, removeFromLibrary } from './library.js';
+import { gateShape, gateSymbolSVG, componentBoxSVG, GATE_WIDTH, GATE_HEIGHT } from './shapes.js';
 import {
-  WORLD, SCALE, LOCAL, SIZE, localInPin, localOutPin, inPinPos, outPinPos, curvedPath,
+  WORLD, SCALE, LOCAL, SIZE, nodeSize, localInPin, localOutPin, inPinPos, outPinPos, curvedPath,
 } from './geometry.js';
 import { route, pathData, WIRE_STYLES } from './wiring.js';
 import { readSlots, writeSlot, clearSlot, summary, savedWhen } from './slots.js';
-import { thumbnailSVG } from './thumbnail.js';
+import { thumbnailSVG, componentBox } from './thumbnail.js';
 import { setupSettingsMenu } from '../assets/settings-menu.js';
 
 const STORAGE_KEY = 'groundwork.logic.v1';
 const HISTORY_LENGTH = 20;
 const UNDO_LIMIT = 100;
 const SVG_NS = 'http://www.w3.org/2000/svg';
+// Limits for this page, so the truth table stays readable. The logic core
+// itself has no limit (the workshop needs bigger circuits).
+const MAX_INPUTS = 5;
+const MAX_OUTPUTS = 4;
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -31,6 +38,10 @@ const ui = {
   gateRef: $('gate-ref').querySelector('tbody'),
   slotList: $('slot-list'), saveOpen: $('save-open'), saveDialog: $('save-dialog'),
   saveClose: $('save-close'), slotCards: $('slot-cards'),
+  check: $('check'), target: $('target'), back: $('back'), canvasTitle: $('canvas-title'),
+  componentsOpen: $('components-open'), componentsDialog: $('components-dialog'),
+  componentsClose: $('components-close'), componentForm: $('component-form'),
+  componentName: $('component-name'), componentError: $('component-error'), componentList: $('component-list'),
 };
 
 const settings = setupSettingsMenu($('settings-toggle'), $('settings-menu'));
@@ -38,9 +49,12 @@ const settings = setupSettingsMenu($('settings-toggle'), $('settings-menu'));
 const state = {
   circuit: emptyCircuit(),
   selected: null,       // { type: 'node', id } | { type: 'wire', to, pin } | null
-  pending: null,        // a wire being drawn: { from } or { to, pin }
+  pending: null,        // a wire being drawn: { from, fromPin } or { to, pin }
+  view: [],             // component node ids, when looking inside components
+  target: '',           // id from TARGETS, or '' for none
   pointer: null,        // last pointer position in circuit coordinates
   drag: null,           // { id, dx, dy, startX, startY, before, moved }
+  lastTap: null,        // { id, time } of the last click on a part, to spot double-clicks
   undo: [],
   redo: [],
   log: [],
@@ -52,7 +66,9 @@ const state = {
 
 function save() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ circuit: state.circuit, labels: state.labels, wireStyle: state.wireStyle }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      circuit: state.circuit, labels: state.labels, wireStyle: state.wireStyle, target: state.target,
+    }));
   } catch {
     // Storage may be unavailable; the tool still works.
   }
@@ -83,10 +99,58 @@ function say(text, { error = false, log = true } = {}) {
   }));
 }
 
-function outputSummary(values) {
+// The value on output pin `pin` of node `id` in a simulation.
+const val = (sim, id, pin = 0) => sim.out.get(id)?.[pin] ?? null;
+
+function outputSummary(sim) {
   return outputs(state.circuit)
-    .map((o) => `${o.name} is ${values.get(o.id) ?? '?'}`)
+    .map((o) => `${o.name} is ${val(sim, o.id) ?? '?'}`)
     .join(', ');
+}
+
+// ---------- Looking inside components ----------
+
+const inside = () => state.view.length > 0;
+
+// The circuit on screen: the main circuit, or the inside of a component.
+// Returns { circuit, sim, trail } where trail lists the component names.
+function shown(sim) {
+  let circuit = state.circuit;
+  let s = sim;
+  const trail = [];
+  for (const id of state.view) {
+    const node = getNode(circuit, id);
+    const def = node && definitionOf(circuit, node);
+    const innerSim = s.inner.get(id);
+    if (!def || !innerSim) {
+      state.view = [];
+      return { circuit: state.circuit, sim, trail: [] };
+    }
+    trail.push(def.name);
+    circuit = def.circuit;
+    s = innerSim;
+  }
+  return { circuit, sim: s, trail };
+}
+
+function openComponent(id) {
+  const { circuit } = shown(simulate(state.circuit));
+  const node = getNode(circuit, id);
+  if (!node || node.kind !== 'component') return;
+  state.view.push(id);
+  state.selected = null;
+  state.pending = null;
+  say(`Inside ${definitionOf(circuit, node).name}. Its inputs come from the circuit outside, so the values here are live.`);
+  render();
+  ui.back.focus();
+}
+
+function closeComponent() {
+  if (!inside()) return;
+  const id = state.view.pop();
+  say(inside() ? `Back to ${shown(simulate(state.circuit)).trail.at(-1)}.` : 'Back to the main circuit.', { log: false });
+  render();
+  ui.canvas.querySelector(`[data-key="node:${id}"]`)?.focus();
 }
 
 // ---------- Changes and undo ----------
@@ -94,6 +158,7 @@ function outputSummary(values) {
 // Make a change that can be undone. `fn` edits state.circuit and returns a
 // log message, or { error } to cancel.
 function change(fn) {
+  ui.check.dataset.result = '';
   const before = clone(state.circuit);
   const result = fn();
   if (result && result.error) {
@@ -114,6 +179,7 @@ function change(fn) {
 }
 
 function undo() {
+  if (inside()) return;
   const previous = state.undo.pop();
   if (!previous) return;
   state.redo.push(clone(state.circuit));
@@ -126,6 +192,7 @@ function undo() {
 }
 
 function redo() {
+  if (inside()) return;
   const next = state.redo.pop();
   if (!next) return;
   state.undo.push(clone(state.circuit));
@@ -138,10 +205,6 @@ function redo() {
 }
 
 // ---------- Geometry ----------
-
-function nodeSize(node) {
-  return SIZE[node.kind];
-}
 
 const wirePath = curvedPath;
 
@@ -158,10 +221,10 @@ function previewPath(a, b) {
 function clamp(node, x, y) {
   const { w, h } = nodeSize(node);
   const left = node.kind === 'output' ? 16 : 4;
-  const right = node.kind === 'gate' ? 4 : node.kind === 'input' ? 18 : 50;
+  const right = node.kind === 'gate' || node.kind === 'component' ? 4 : node.kind === 'input' ? 18 : 50;
   return {
     x: Math.round(Math.min(Math.max(x, left), WORLD.width - w - right)),
-    y: Math.round(Math.min(Math.max(y, 4), WORLD.height - h - 4)),
+    y: Math.round(Math.min(Math.max(y, node.kind === 'component' ? 18 : 4), WORLD.height - h - 4)),
   };
 }
 
@@ -173,15 +236,14 @@ function toCircuitPoint(event) {
   return { x: p.x, y: p.y };
 }
 
-// Find an empty spot for a new node.
-function freeSpot(kind) {
-  const size = SIZE[kind];
+// Find an empty spot for a new node of the given size.
+function freeSpot(kind, size = SIZE[kind]) {
   const columns = kind === 'input' ? [30] : kind === 'output' ? [830] : [200, 340, 480, 620];
   const overlaps = (x, y) => state.circuit.nodes.some((n) => {
     const s = nodeSize(n);
     return x < n.x + s.w + 30 && x + size.w + 30 > n.x && y < n.y + s.h + 20 && y + size.h + 20 > n.y;
   });
-  for (let y = 40; y < WORLD.height - size.h; y += 90) {
+  for (let y = 40; y < WORLD.height - size.h - 4; y += 90) {
     for (const x of columns) if (!overlaps(x, y)) return { x, y };
   }
   return { x: columns[0], y: 40 };
@@ -210,25 +272,31 @@ function pinKey(id, side, pin = 0) {
   return `pin:${id}:${side}:${pin}`;
 }
 
-function drawPin(group, node, side, pin, pos, value) {
-  const name = describe(state.circuit, node);
-  const label = side === 'out'
-    ? `Output of ${name}. Press to start a wire.`
-    : `${pinCount(node) > 1 ? `Input ${pin + 1} of ` : 'Input of '}${name}. Press to end a wire here.`;
+function drawPin(group, circuit, node, side, pin, pos, value) {
+  const name = describe(circuit, node);
+  let label;
+  if (side === 'out') {
+    const which = node.kind === 'component' ? `Output ${node.outs[pin]} of ` : 'Output of ';
+    label = `${which}${name}.${inside() ? '' : ' Press to start a wire.'}`;
+  } else {
+    let which = 'Input of ';
+    if (node.kind === 'component') which = `Input ${node.ins[pin]} of `;
+    else if (pinCount(node) > 1) which = `Input ${pin + 1} of `;
+    label = `${which}${name}.${inside() ? '' : ' Press to end a wire here.'}`;
+  }
   const isPending = state.pending && (
-    (side === 'out' && state.pending.from === node.id)
+    (side === 'out' && state.pending.from === node.id && state.pending.fromPin === pin)
     || (side === 'in' && state.pending.to === node.id && state.pending.pin === pin));
-  const c = el('circle', {
+  return el('circle', {
     cx: pos.x, cy: pos.y, r: 4.5,
     class: `pin pin-${side} ${valueClass(value)}${isPending ? ' is-pending' : ''}`,
-    tabindex: 0, role: 'button', 'aria-label': label,
+    tabindex: inside() ? -1 : 0, role: 'button', 'aria-label': label,
     'data-key': pinKey(node.id, side, pin), 'data-id': node.id, 'data-side': side, 'data-pin': pin,
   }, group);
-  return c;
 }
 
-function drawNode(node, values) {
-  const v = values.get(node.id);
+function drawNode(circuit, sim, node) {
+  const v = val(sim, node.id);
   const outer = el('g', {
     class: `node node-${node.kind}${isSelectedNode(node.id) ? ' is-selected' : ''}`,
     transform: `translate(${node.x} ${node.y})`,
@@ -236,7 +304,8 @@ function drawNode(node, values) {
   }, ui.nodes);
   const g = el('g', { transform: `scale(${SCALE})` }, outer);
 
-  const name = describe(state.circuit, node);
+  const name = describe(circuit, node);
+  const edit = inside() ? '' : ' Arrow keys move it, Delete removes it.';
   let bodyLabel;
   if (node.kind === 'gate') {
     const shape = gateShape(node.type);
@@ -247,15 +316,21 @@ function drawNode(node, values) {
     if (shape.bubble) el('circle', { cx: shape.bubble.cx, cy: 22, r: shape.bubble.r, class: 'bubble' }, g);
     const label = el('text', { x: GATE_WIDTH / 2, y: GATE_HEIGHT + 10, class: 'gate-label' }, g);
     label.textContent = node.type;
-    bodyLabel = `${name}, output ${v ?? 'unknown'}. Arrow keys move it, Delete removes it.`;
+    bodyLabel = `${name}, output ${v ?? 'unknown'}.${edit}`;
+  } else if (node.kind === 'component') {
+    g.innerHTML = componentBoxSVG(componentBox(circuit, node));
+    const outsText = node.outs.map((o, i) => `${o} ${val(sim, node.id, i) ?? 'unknown'}`).join(', ');
+    bodyLabel = `${name} component, outputs ${outsText}. Press Enter or double-click to look inside.${edit}`;
   } else if (node.kind === 'input') {
     el('path', { d: `M${LOCAL.input.w} 16 H${LOCAL.input.w + 10}`, class: 'lead' }, g);
     el('rect', { x: 0, y: 0, width: LOCAL.input.w, height: LOCAL.input.h, rx: 4, class: `switch ${valueClass(v)}` }, g);
     const nameText = el('text', { x: 7, y: 20.5, class: 'node-name' }, g);
     setSvgName(nameText, node.name);
     const valueText = el('text', { x: LOCAL.input.w - 10, y: 20.5, class: 'node-value' }, g);
-    valueText.textContent = v;
-    bodyLabel = `Input ${node.name}, value ${v}. Press Enter to switch it, F2 to rename.`;
+    valueText.textContent = v ?? '?';
+    bodyLabel = inside()
+      ? `Input ${node.name}, value ${v ?? 'unknown'}, set by the circuit outside.`
+      : `Input ${node.name}, value ${v}. Press Enter to switch it, F2 to rename.`;
   } else {
     el('path', { d: 'M-10 16 H4', class: 'lead' }, g);
     el('circle', { cx: 20, cy: 16, r: 16, class: `lamp ${valueClass(v)}` }, g);
@@ -263,7 +338,7 @@ function drawNode(node, values) {
     valueText.textContent = v ?? '?';
     const nameText = el('text', { x: 41, y: 20.5, class: 'node-name' }, g);
     setSvgName(nameText, node.name);
-    bodyLabel = `Output ${node.name}, value ${v ?? 'unknown'}. F2 renames it.`;
+    bodyLabel = `Output ${node.name}, value ${v ?? 'unknown'}.${inside() ? '' : ' F2 renames it.'}`;
   }
   outer.setAttribute('tabindex', '0');
   outer.setAttribute('role', 'group');
@@ -271,35 +346,38 @@ function drawNode(node, values) {
   outer.dataset.key = `node:${node.id}`;
 
   for (let pin = 0; pin < pinCount(node); pin++) {
-    const w = wireInto(state.circuit, node.id, pin);
-    drawPin(g, node, 'in', pin, localInPin(node, pin), w ? values.get(w.from) : null);
+    const w = wireInto(circuit, node.id, pin);
+    drawPin(g, circuit, node, 'in', pin, localInPin(node, pin), w ? val(sim, w.from, w.fromPin) : null);
   }
-  if (hasOutput(node)) drawPin(g, node, 'out', 0, localOutPin(node), v);
+  for (let pin = 0; pin < outCount(node); pin++) {
+    drawPin(g, circuit, node, 'out', pin, localOutPin(node, pin), val(sim, node.id, pin));
+  }
 }
 
-function drawWires(values) {
-  const ends = state.circuit.wires.map((w) => ({
+function drawWires(circuit, sim) {
+  const ends = circuit.wires.map((w) => ({
     key: `${w.to}:${w.pin}`,
-    source: w.from,
-    a: outPinPos(getNode(state.circuit, w.from)),
-    b: inPinPos(getNode(state.circuit, w.to), w.pin),
+    source: `${w.from}:${w.fromPin}`,
+    a: outPinPos(getNode(circuit, w.from), w.fromPin),
+    b: inPinPos(getNode(circuit, w.to), w.pin),
   }));
   // Curved wires are drawn as before; the straight styles are routed, with
   // hops where different signals cross and dots where one signal splits.
   const routed = state.wireStyle === 'curved' ? null : route(ends, state.wireStyle);
 
-  const items = state.circuit.wires.map((w, i) => {
+  const items = circuit.wires.map((w, i) => {
     const { key, a, b } = ends[i];
     const d = routed ? pathData(routed.wires.get(key)) : wirePath(a, b);
     const selected = state.selected?.type === 'wire' && state.selected.to === w.to && state.selected.pin === w.pin;
     const g = el('g', { class: `wire-group${selected ? ' is-selected' : ''}`, 'data-to': w.to, 'data-pin': w.pin });
     el('path', { d, class: 'wire-hit' }, g);
-    el('path', { d, class: `wire ${valueClass(values.get(w.from))}` }, g);
+    el('path', { d, class: `wire ${valueClass(val(sim, w.from, w.fromPin))}` }, g);
     return g;
   });
-  const dots = (routed?.junctions ?? []).map((j) => el('circle', {
-    cx: j.x, cy: j.y, r: 4, class: `junction ${valueClass(values.get(j.source))}`,
-  }));
+  const dots = (routed?.junctions ?? []).map((j) => {
+    const [id, pin] = j.source.split(':');
+    return el('circle', { cx: j.x, cy: j.y, r: 4, class: `junction ${valueClass(val(sim, id, Number(pin)))}` });
+  });
   ui.wires.replaceChildren(...items, ...dots);
 }
 
@@ -309,7 +387,7 @@ function drawPending() {
     return;
   }
   if (state.pending.from) {
-    ui.pending.setAttribute('d', previewPath(outPinPos(getNode(state.circuit, state.pending.from)), state.pointer));
+    ui.pending.setAttribute('d', previewPath(outPinPos(getNode(state.circuit, state.pending.from), state.pending.fromPin), state.pointer));
   } else {
     ui.pending.setAttribute('d', previewPath(state.pointer, inPinPos(getNode(state.circuit, state.pending.to), state.pending.pin)));
   }
@@ -360,16 +438,31 @@ function expressionDOM(tree) {
   return span;
 }
 
-function renderExpressions() {
-  const outs = outputs(state.circuit);
+function targetBox() {
+  const t = TARGETS.find((x) => x.id === state.target);
+  if (!t || inside()) return [];
+  const box = document.createElement('div');
+  box.className = 'status-box target-box';
+  const label = document.createElement('span');
+  label.className = 'cell-label';
+  label.textContent = `Target: ${t.name}`;
+  const value = document.createElement('span');
+  value.className = 'status-value target-goal';
+  value.textContent = t.goal;
+  box.append(label, value);
+  return [box];
+}
+
+function renderExpressions(circuit) {
+  const outs = outputs(circuit);
   if (outs.length === 0) {
     const box = document.createElement('div');
     box.className = 'status-box';
     box.innerHTML = '<span class="cell-label">Boolean expression</span><span class="status-value muted">No outputs</span>';
-    ui.expressions.replaceChildren(box);
+    ui.expressions.replaceChildren(...targetBox(), box);
     return;
   }
-  ui.expressions.replaceChildren(...outs.map((o) => {
+  ui.expressions.replaceChildren(...targetBox(), ...outs.map((o) => {
     const box = document.createElement('div');
     box.className = 'status-box';
     const label = document.createElement('span');
@@ -377,14 +470,14 @@ function renderExpressions() {
     label.append('Output ', nameHTML(o.name));
     const value = document.createElement('span');
     value.className = 'status-value expr';
-    value.append(nameHTML(o.name), ' = ', expressionDOM(expression(state.circuit, o.id)));
+    value.append(nameHTML(o.name), ' = ', expressionDOM(expression(circuit, o.id)));
     box.append(label, value);
     return box;
   }));
 }
 
-function renderTruthTable() {
-  const t = truthTable(state.circuit);
+function renderTruthTable(circuit, sim) {
+  const t = truthTable(circuit);
   if (t.inputs.length === 0) {
     const p = document.createElement('p');
     p.className = 'muted small';
@@ -392,9 +485,9 @@ function renderTruthTable() {
     ui.truth.replaceChildren(p);
     return;
   }
-  const current = inputs(state.circuit).map((n) => n.value).join('');
+  const current = inputs(circuit).map((n) => val(sim, n.id)).join('');
   const table = document.createElement('table');
-  table.className = 'truth-table';
+  table.className = `truth-table${inside() ? ' is-readonly' : ''}`;
   const head = table.createTHead().insertRow();
   t.inputs.forEach((name) => {
     const th = document.createElement('th');
@@ -414,9 +507,11 @@ function renderTruthTable() {
     const tr = body.insertRow();
     const bits = row.inputs.join('');
     if (bits === current) tr.className = 'is-current';
-    tr.tabIndex = 0;
-    tr.dataset.bits = bits;
-    tr.setAttribute('aria-label', `Set inputs to ${t.inputs.map((n, i) => `${n} = ${row.inputs[i]}`).join(', ')}`);
+    if (!inside()) {
+      tr.tabIndex = 0;
+      tr.dataset.bits = bits;
+      tr.setAttribute('aria-label', `Set inputs to ${t.inputs.map((n, i) => `${n} = ${row.inputs[i]}`).join(', ')}`);
+    }
     row.inputs.forEach((b) => { tr.insertCell().textContent = b; });
     row.outputs.forEach((b, i) => {
       const td = tr.insertCell();
@@ -431,24 +526,38 @@ function renderTruthTable() {
 
 function render() {
   const active = document.activeElement?.dataset?.key;
-  const values = evaluate(state.circuit);
-  drawWires(values);
+  const { circuit, sim, trail } = shown(simulate(state.circuit));
+  drawWires(circuit, sim);
   ui.nodes.replaceChildren();
-  state.circuit.nodes.forEach((n) => drawNode(n, values));
+  circuit.nodes.forEach((n) => drawNode(circuit, sim, n));
   drawPending();
   ui.canvas.classList.toggle('show-labels', state.labels);
   ui.canvas.classList.toggle('is-wiring', Boolean(state.pending));
-  renderExpressions();
-  renderTruthTable();
-  ui.undo.disabled = state.undo.length === 0;
-  ui.redo.disabled = state.redo.length === 0;
-  ui.del.disabled = !state.selected;
+  ui.wrap.classList.toggle('is-inside', inside());
+  ui.canvasTitle.textContent = ['Circuit', ...trail].join(' › ');
+  ui.back.hidden = !inside();
+  renderExpressions(circuit);
+  renderTruthTable(circuit, sim);
+  ui.undo.disabled = inside() || state.undo.length === 0;
+  ui.redo.disabled = inside() || state.redo.length === 0;
+  ui.del.disabled = inside() || !state.selected;
+  ui.check.hidden = !state.target;
+  ui.palette.querySelectorAll('button').forEach((b) => { b.disabled = inside(); });
   if (active) ui.canvas.querySelector(`[data-key="${active}"]`)?.focus();
 }
 
 // ---------- Actions ----------
 
 function addFromPalette(kind, type) {
+  if (inside()) return;
+  if (kind === 'input' && inputs(state.circuit).length >= MAX_INPUTS) {
+    say(`This tool allows up to ${MAX_INPUTS} inputs, so the truth table stays readable.`, { error: true });
+    return;
+  }
+  if (kind === 'output' && outputs(state.circuit).length >= MAX_OUTPUTS) {
+    say(`This tool allows up to ${MAX_OUTPUTS} outputs.`, { error: true });
+    return;
+  }
   const spot = freeSpot(kind);
   change(() => {
     const r = addNode(state.circuit, { kind, type, ...spot });
@@ -461,7 +570,7 @@ function addFromPalette(kind, type) {
 
 function deleteSelected() {
   const sel = state.selected;
-  if (!sel) return;
+  if (!sel || inside()) return;
   change(() => {
     if (sel.type === 'node') {
       const node = getNode(state.circuit, sel.id);
@@ -479,44 +588,51 @@ function deleteSelected() {
 
 function toggleInput(id) {
   const node = getNode(state.circuit, id);
-  if (!node || node.kind !== 'input') return;
+  if (inside() || !node || node.kind !== 'input') return;
   node.value = 1 - node.value;
   save();
-  const values = evaluate(state.circuit);
-  say(`Set ${node.name} to ${node.value}.${outputs(state.circuit).length ? ` ${outputSummary(values)}.` : ''}`);
+  const sim = simulate(state.circuit);
+  say(`Set ${node.name} to ${node.value}.${outputs(state.circuit).length ? ` ${outputSummary(sim)}.` : ''}`);
   render();
 }
 
 function setInputs(bits) {
+  if (inside()) return;
   inputs(state.circuit).forEach((n, i) => { n.value = Number(bits[i]); });
   save();
-  const values = evaluate(state.circuit);
-  say(`Set ${inputs(state.circuit).map((n) => `${n.name} = ${n.value}`).join(', ')}.${outputs(state.circuit).length ? ` ${outputSummary(values)}.` : ''}`);
+  const sim = simulate(state.circuit);
+  say(`Set ${inputs(state.circuit).map((n) => `${n.name} = ${n.value}`).join(', ')}.${outputs(state.circuit).length ? ` ${outputSummary(sim)}.` : ''}`);
   render();
+}
+
+// "AND gate" or "HALF ADDER (output C)": which pin a wire leaves from or goes to.
+function pinName(node, side, pin) {
+  const name = describe(state.circuit, node);
+  if (node.kind === 'component') return `${name} (${side === 'out' ? 'output' : 'input'} ${side === 'out' ? node.outs[pin] : node.ins[pin]})`;
+  if (side === 'in' && pinCount(node) > 1) return `${name} (input ${pin + 1})`;
+  return name;
 }
 
 // Start or finish a wire at a pin.
 function pinPressed(id, side, pin) {
+  if (inside()) return;
   const p = state.pending;
-  if (p && side === 'in' && p.from) return finishWire(p.from, id, pin);
-  if (p && side === 'out' && p.to) return finishWire(id, p.to, p.pin);
-  state.pending = side === 'out' ? { from: id } : { to: id, pin };
+  if (p && side === 'in' && p.from) return finishWire(p.from, p.fromPin, id, pin);
+  if (p && side === 'out' && p.to) return finishWire(id, pin, p.to, p.pin);
+  state.pending = side === 'out' ? { from: id, fromPin: pin } : { to: id, pin };
   const node = getNode(state.circuit, id);
-  const pinText = side === 'out' ? 'the output of' : 'an input of';
-  say(`Wiring from ${pinText} ${describe(state.circuit, node)}. Choose where it goes, or press Escape.`, { log: false });
+  say(`Wiring from ${side === 'out' ? 'the output of' : 'an input of'} ${pinName(node, side, pin)}. Choose where it goes, or press Escape.`, { log: false });
   render();
 }
 
-function finishWire(from, to, pin) {
+function finishWire(from, fromPin, to, pin) {
   state.pending = null;
   change(() => {
-    const r = connect(state.circuit, from, to, pin);
+    const r = connect(state.circuit, from, to, pin, fromPin);
     if (r.error) return r;
-    const a = describe(state.circuit, getNode(state.circuit, from));
-    const toNode = getNode(state.circuit, to);
-    const b = describe(state.circuit, toNode);
-    const where = pinCount(toNode) > 1 ? ` (input ${pin + 1})` : '';
-    return `Connected ${a} to ${b}${where}.${r.replaced ? ' This replaced the wire that was there.' : ''}`;
+    const a = pinName(getNode(state.circuit, from), 'out', fromPin);
+    const b = pinName(getNode(state.circuit, to), 'in', pin);
+    return `Connected ${a} to ${b}.${r.replaced ? ' This replaced the wire that was there.' : ''}`;
   });
 }
 
@@ -528,7 +644,8 @@ function cancelWire() {
 }
 
 function loadCircuit(circuit, message) {
-  state.circuit = clone(circuit);
+  state.circuit = normalise(circuit);
+  state.view = [];
   state.selected = null;
   state.pending = null;
   save();
@@ -540,7 +657,7 @@ function loadCircuit(circuit, message) {
 
 function beginRename(id) {
   const node = getNode(state.circuit, id);
-  if (!node || node.kind === 'gate') return;
+  if (inside() || !node || (node.kind !== 'input' && node.kind !== 'output')) return;
   const target = ui.canvas.querySelector(`[data-key="node:${id}"]`);
   const box = target.getBoundingClientRect();
   const wrap = ui.wrap.getBoundingClientRect();
@@ -582,7 +699,7 @@ function beginRename(id) {
 // ---------- Pointer input on the canvas ----------
 
 ui.canvas.addEventListener('pointerdown', (e) => {
-  if (e.button !== 0) return;
+  if (e.button !== 0 || inside()) return; // the inside of a component is read-only
   const pinEl = e.target.closest('.pin');
   const nodeEl = e.target.closest('.node');
   const wireEl = e.target.closest('.wire-group');
@@ -644,12 +761,36 @@ ui.canvas.addEventListener('pointerup', (e) => {
     const d = state.drag;
     state.drag = null;
     if (d.moved) {
+      state.lastTap = null;
       state.undo.push(d.before);
       state.redo = [];
       save();
       render();
-    } else if (getNode(state.circuit, d.id)?.kind === 'input') {
-      toggleInput(d.id);
+      return;
+    }
+    // A click. Two quick clicks on the same part count as a double-click.
+    // (The browser's own dblclick event is unreliable here, because the
+    // first click on an input redraws the circuit, and on touch screens.)
+    const node = getNode(state.circuit, d.id);
+    const now = Date.now();
+    const double = state.lastTap?.id === d.id && now - state.lastTap.time < 350;
+    state.lastTap = double ? null : { id: d.id, time: now };
+    if (!double) {
+      if (node?.kind === 'input') toggleInput(d.id);
+      return;
+    }
+    if (node?.kind === 'component') {
+      openComponent(d.id);
+    } else if (node?.kind === 'input' || node?.kind === 'output') {
+      if (node.kind === 'input') {
+        // Undo the first click's switch, so a double-click only renames.
+        node.value = 1 - node.value;
+        state.log.shift();
+        save();
+        say(`Renaming ${node.name}.`, { log: false });
+        render();
+      }
+      beginRename(d.id);
     }
     return;
   }
@@ -667,9 +808,12 @@ ui.canvas.addEventListener('pointerup', (e) => {
   }
 });
 
+// Inside a component nothing can be edited, so pressing a part does nothing
+// and the browser's dblclick is reliable: use it to open a nested component.
 ui.canvas.addEventListener('dblclick', (e) => {
-  const nodeEl = e.target.closest('.node');
-  if (nodeEl) beginRename(nodeEl.dataset.id);
+  if (!inside()) return; // the main circuit spots double-clicks in pointerup
+  const nodeEl = (document.elementFromPoint(e.clientX, e.clientY) ?? e.target).closest('.node-component');
+  if (nodeEl) openComponent(nodeEl.dataset.id);
 });
 
 // ---------- Keyboard ----------
@@ -700,6 +844,12 @@ ui.canvas.addEventListener('keydown', (e) => {
   const key = target.dataset?.key;
   if (!key?.startsWith('node:')) return;
   const id = key.slice(5);
+  if (target.classList.contains('node-component') && e.key === 'Enter') {
+    e.preventDefault();
+    openComponent(id);
+    return;
+  }
+  if (inside()) return;
   const node = getNode(state.circuit, id);
   const step = e.shiftKey ? 40 : 10;
   const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
@@ -721,11 +871,14 @@ document.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
-  else if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected && ui.canvas.contains(document.activeElement)) {
+  else if ((e.key === 'Delete' || e.key === 'Backspace') && !inside() && state.selected && ui.canvas.contains(document.activeElement)) {
     e.preventDefault();
     deleteSelected();
   } else if (e.key === 'Escape') {
-    cancelWire();
+    // Menus and dialogs handle their own Escape.
+    if (!$('settings-menu').hidden || document.querySelector('dialog[open]')) return;
+    if (state.pending) cancelWire();
+    else closeComponent();
   }
 });
 
@@ -760,12 +913,48 @@ function paletteButton(label, svg, onClick, title) {
 const INPUT_ICON = '<svg class="gate-symbol" viewBox="-1 -1 66 46" width="28" height="20" aria-hidden="true" stroke-width="3"><rect x="6" y="8" width="40" height="28" rx="4" class="body"/><path d="M46 22 H64" class="lead"/></svg>';
 const OUTPUT_ICON = '<svg class="gate-symbol" viewBox="-1 -1 66 46" width="28" height="20" aria-hidden="true" stroke-width="3"><path d="M0 22 H20" class="lead"/><circle cx="40" cy="22" r="18" class="body"/></svg>';
 
-ui.palette.append(
-  paletteButton('Input', INPUT_ICON, () => addFromPalette('input'), 'Add an input'),
-  paletteButton('Output', OUTPUT_ICON, () => addFromPalette('output'), 'Add an output'),
-  ...GATE_TYPES.map((type) => paletteButton(type, gateSymbolSVG(type, { width: 28, height: 20, strokeWidth: 3 }), () => addFromPalette('gate', type), `Add a ${type} gate`)),
-);
+const COMPONENT_ICON = '<svg class="gate-symbol" viewBox="-1 -1 66 46" width="28" height="20" aria-hidden="true" stroke-width="3"><path d="M0 14 H12 M0 30 H12 M52 14 H64 M52 30 H64" class="lead"/><rect x="12" y="4" width="40" height="36" rx="3" class="body"/></svg>';
 
+// localStorage can be missing or blocked; the library and slot modules cope
+// with a storage that throws, and report it when saving.
+const store = (() => {
+  try {
+    return window.localStorage;
+  } catch {
+    return { getItem: () => null, setItem: () => { throw new Error('No storage'); } };
+  }
+})();
+
+// Inputs, outputs, the six gates, then the user's own components.
+function renderPalette() {
+  const base = [
+    paletteButton('Input', INPUT_ICON, () => addFromPalette('input'), 'Add an input'),
+    paletteButton('Output', OUTPUT_ICON, () => addFromPalette('output'), 'Add an output'),
+    ...GATE_TYPES.map((type) => paletteButton(type, gateSymbolSVG(type, { width: 28, height: 20, strokeWidth: 3 }), () => addFromPalette('gate', type), `Add a ${type} gate`)),
+  ];
+  const own = readLibrary(store).map((def) => {
+    const b = paletteButton(def.name, COMPONENT_ICON, () => addComponentFromLibrary(def.id), `Add a ${def.name} component`);
+    b.classList.add('palette-component');
+    return b;
+  });
+  ui.palette.replaceChildren(...base, ...own);
+  ui.palette.querySelectorAll('button').forEach((b) => { b.disabled = inside(); });
+}
+
+function addComponentFromLibrary(id) {
+  const def = readLibrary(store).find((d) => d.id === id);
+  if (!def || inside()) return;
+  const probe = { kind: 'component', ins: def.inputs, outs: def.outputs };
+  const spot = freeSpot('component', nodeSize(probe));
+  change(() => {
+    const { node } = addComponent(state.circuit, def, spot);
+    state.selected = { type: 'node', id: node.id };
+    return `Added ${describe(state.circuit, node)}.`;
+  });
+  ui.canvas.querySelector(`[data-key="node:${state.selected?.id}"]`)?.focus();
+}
+
+ui.back.addEventListener('click', closeComponent);
 ui.undo.addEventListener('click', undo);
 ui.redo.addEventListener('click', redo);
 ui.del.addEventListener('click', deleteSelected);
@@ -815,6 +1004,108 @@ ui.clear.addEventListener('click', () => {
   });
 });
 
+// ---------- Components dialog ----------
+
+function renderComponentList() {
+  const list = readLibrary(store);
+  if (list.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'muted small';
+    li.textContent = 'None yet.';
+    ui.componentList.replaceChildren(li);
+    return;
+  }
+  ui.componentList.replaceChildren(...list.map((def) => {
+    const li = document.createElement('li');
+    li.className = 'component-item';
+    const info = document.createElement('span');
+    const name = document.createElement('strong');
+    name.textContent = def.name;
+    const pins = document.createElement('span');
+    pins.className = 'muted small';
+    pins.append(' Inputs ');
+    def.inputs.forEach((n, i) => pins.append(i ? ', ' : '', nameHTML(n)));
+    pins.append('; outputs ');
+    def.outputs.forEach((n, i) => pins.append(i ? ', ' : '', nameHTML(n)));
+    info.append(name, pins);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'button';
+    del.textContent = 'Delete';
+    del.dataset.remove = def.id;
+    del.setAttribute('aria-label', `Delete the ${def.name} component`);
+    li.append(info, del);
+    return li;
+  }));
+}
+
+function openComponentsDialog() {
+  settings.close(false);
+  ui.componentError.textContent = '';
+  ui.componentName.value = '';
+  renderComponentList();
+  ui.componentsDialog.showModal();
+  ui.componentName.focus();
+}
+
+ui.componentsOpen.addEventListener('click', openComponentsDialog);
+ui.componentsClose.addEventListener('click', () => ui.componentsDialog.close());
+ui.componentsDialog.addEventListener('click', (e) => {
+  if (e.target === ui.componentsDialog) { ui.componentsDialog.close(); return; }
+  const remove = e.target.closest('[data-remove]');
+  if (!remove) return;
+  const def = readLibrary(store).find((d) => d.id === remove.dataset.remove);
+  const r = removeFromLibrary(store, remove.dataset.remove);
+  if (r.error) { ui.componentError.textContent = r.error; return; }
+  say(`Deleted the ${def?.name ?? ''} component from your list. Circuits already using it keep their copy.`);
+  renderComponentList();
+  renderPalette();
+});
+ui.componentForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const made = makeComponent(state.circuit, ui.componentName.value, `comp-${Date.now().toString(36)}`);
+  if (made.error) { ui.componentError.textContent = made.error; return; }
+  const r = addToLibrary(store, made.def);
+  if (r.error) { ui.componentError.textContent = r.error; return; }
+  ui.componentsDialog.close();
+  renderPalette();
+  const { def } = made;
+  say(`Made the ${def.name} component (inputs ${def.inputs.join(', ')}; outputs ${def.outputs.join(', ')}).${r.replaced ? ' It replaces the one with the same name.' : ''} It is now in the tool bar.`);
+});
+
+// ---------- Targets and checks ----------
+
+for (const t of TARGETS) {
+  const opt = document.createElement('option');
+  opt.value = t.id;
+  opt.textContent = t.name;
+  ui.target.append(opt);
+}
+ui.target.addEventListener('change', () => {
+  state.target = ui.target.value;
+  ui.check.dataset.result = '';
+  save();
+  const t = TARGETS.find((x) => x.id === state.target);
+  say(t ? `Target: ${t.name}. ${t.goal} Press Check when it's ready.` : 'No target.', { log: Boolean(t) });
+  render();
+});
+
+function runCheck() {
+  const t = TARGETS.find((x) => x.id === state.target);
+  if (!t) return;
+  state.view = [];
+  const r = check(state.circuit, t);
+  if (r.values) {
+    // Show the failing case: set the inputs to it, so the wrong value is on screen.
+    for (const n of inputs(state.circuit)) if (n.name in r.values) n.value = r.values[n.name];
+    save();
+  }
+  ui.check.dataset.result = r.pass ? 'pass' : 'fail';
+  say(r.message, { error: !r.pass });
+  render();
+}
+ui.check.addEventListener('click', runCheck);
+
 // ---------- Gate reference ----------
 
 for (const type of GATE_TYPES) {
@@ -838,15 +1129,7 @@ for (const type of GATE_TYPES) {
 
 // ---------- Saved circuits ----------
 
-// localStorage can be missing or blocked; slots.js copes with a storage
-// that throws, and reports it when saving.
-const slotStorage = (() => {
-  try {
-    return window.localStorage;
-  } catch {
-    return { getItem: () => null, setItem: () => { throw new Error('No storage'); } };
-  }
-})();
+const slotStorage = store;
 
 const DELETE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M7 7l10 10M17 7 7 17"/></svg>';
 
@@ -1029,14 +1312,17 @@ ui.saveDialog.addEventListener('close', () => { asking = null; });
 function start() {
   const saved = loadSaved();
   if (saved && isValidCircuit(saved.circuit)) {
-    state.circuit = clone(saved.circuit);
+    state.circuit = normalise(saved.circuit);
     state.labels = saved.labels !== false;
     if (WIRE_STYLES[saved.wireStyle]) state.wireStyle = saved.wireStyle;
+    if (TARGETS.some((t) => t.id === saved.target)) state.target = saved.target;
   } else {
-    state.circuit = clone(EXAMPLES[0].circuit);
+    state.circuit = normalise(EXAMPLES[0].circuit);
   }
   ui.showLabels.checked = state.labels;
   ui.wireStyle.value = state.wireStyle;
+  ui.target.value = state.target;
+  renderPalette();
   render();
   renderSlots();
 }
