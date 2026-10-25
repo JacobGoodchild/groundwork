@@ -51,7 +51,10 @@
           <span><input type="checkbox" id="show-labels" checked> <label for="show-labels">Show on gates</label></span>
 
           <span>Circuit</span>
-          <span><button type="button" class="button" id="clear">Clear circuit</button></span>
+          <span class="settings-actions">
+            <button type="button" class="button" id="save-open">Save circuit…</button>
+            <button type="button" class="button" id="clear">Clear circuit</button>
+          </span>
         </div>
       </div>
     </div>
@@ -59,6 +62,11 @@
     <div class="status-strip" id="expressions" aria-label="Boolean expressions"></div>
 
     <div class="circuit-grid">
+      <section class="panel slot-strip" aria-labelledby="slots-title">
+        <h2 class="panel-title" id="slots-title">Saved</h2>
+        <ol class="slot-list" id="slot-list"></ol>
+      </section>
+
       <section class="panel" aria-labelledby="canvas-title">
         <h2 class="panel-title" id="canvas-title">Circuit</h2>
         <div class="canvas-wrap" id="canvas-wrap">
@@ -75,6 +83,19 @@
         <div class="truth-wrap" id="truth"></div>
       </section>
     </div>
+
+    <dialog class="dialog" id="save-dialog" aria-labelledby="save-title">
+      <div class="dialog-head">
+        <h2 id="save-title">Save circuit</h2>
+        <button type="button" class="icon-button" id="save-close" aria-label="Close" title="Close (Escape)">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="slot-dialog-body">
+        <p class="dialog-note">Choose a slot. Saved circuits stay in this browser, on this device.</p>
+        <ol class="slot-cards" id="slot-cards"></ol>
+      </div>
+    </dialog>
 
     <details class="reference log" id="log" open>
       <summary>Log</summary>

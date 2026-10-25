@@ -7,25 +7,19 @@ import {
   inputs, outputs, describe, isValidCircuit, wireInto,
 } from './logic.js';
 import { EXAMPLES } from './examples.js';
-import { gateShape, gateSymbolSVG, GATE_WIDTH, GATE_HEIGHT, PIN_Y, OUT_Y } from './shapes.js';
+import { gateShape, gateSymbolSVG, GATE_WIDTH, GATE_HEIGHT } from './shapes.js';
+import {
+  WORLD, SCALE, LOCAL, SIZE, localInPin, localOutPin, inPinPos, outPinPos, curvedPath,
+} from './geometry.js';
 import { route, pathData, WIRE_STYLES } from './wiring.js';
+import { readSlots, writeSlot, summary, savedWhen } from './slots.js';
+import { thumbnailSVG } from './thumbnail.js';
 import { setupSettingsMenu } from '../assets/settings-menu.js';
 
 const STORAGE_KEY = 'groundwork.logic.v1';
 const HISTORY_LENGTH = 20;
 const UNDO_LIMIT = 100;
-const WORLD = { width: 960, height: 540 };
 const SVG_NS = 'http://www.w3.org/2000/svg';
-
-// Nodes are drawn in their own small coordinates (LOCAL) and scaled up by
-// SCALE on the canvas. Positions (node.x, node.y) are the top-left corner.
-const SCALE = 1.4;
-const LOCAL = {
-  gate: { w: GATE_WIDTH, h: GATE_HEIGHT },
-  input: { w: 52, h: 32 },
-  output: { w: 40, h: 32 },
-};
-const SIZE = Object.fromEntries(Object.entries(LOCAL).map(([k, v]) => [k, { w: v.w * SCALE, h: v.h * SCALE }]));
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -35,6 +29,8 @@ const ui = {
   wires: $('wires'), nodes: $('nodes'), pending: $('pending-wire'),
   truth: $('truth'), explanation: $('explanation'), history: $('history'),
   gateRef: $('gate-ref').querySelector('tbody'),
+  slotList: $('slot-list'), saveOpen: $('save-open'), saveDialog: $('save-dialog'),
+  saveClose: $('save-close'), slotCards: $('slot-cards'),
 };
 
 const settings = setupSettingsMenu($('settings-toggle'), $('settings-menu'));
@@ -147,25 +143,7 @@ function nodeSize(node) {
   return SIZE[node.kind];
 }
 
-// Pin positions in the node's own (unscaled) coordinates.
-function localInPin(node, pin) {
-  if (node.kind === 'output') return { x: -10, y: 16 };
-  return { x: 0, y: PIN_Y[pinCount(node)][pin] };
-}
-
-function localOutPin(node) {
-  if (node.kind === 'input') return { x: LOCAL.input.w + 10, y: 16 };
-  return { x: GATE_WIDTH, y: OUT_Y };
-}
-
-const toWorld = (node, p) => ({ x: node.x + p.x * SCALE, y: node.y + p.y * SCALE });
-const inPinPos = (node, pin) => toWorld(node, localInPin(node, pin));
-const outPinPos = (node) => toWorld(node, localOutPin(node));
-
-function wirePath(a, b) {
-  const dx = Math.max(30, Math.abs(b.x - a.x) / 2);
-  return `M${a.x} ${a.y} C${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
-}
+const wirePath = curvedPath;
 
 // The wire that follows the pointer while you draw one, in the chosen style.
 function previewPath(a, b) {
@@ -797,6 +775,7 @@ ui.wireStyle.addEventListener('change', () => {
   state.wireStyle = ui.wireStyle.value;
   save();
   render();
+  renderSlots();
 });
 
 ui.showLabels.addEventListener('change', () => {
@@ -836,6 +815,135 @@ for (const type of GATE_TYPES) {
   ui.gateRef.append(tr);
 }
 
+// ---------- Saved circuits ----------
+
+// localStorage can be missing or blocked; slots.js copes with a storage
+// that throws, and reports it when saving.
+const slotStorage = (() => {
+  try {
+    return window.localStorage;
+  } catch {
+    return { getItem: () => null, setItem: () => { throw new Error('No storage'); } };
+  }
+})();
+
+function describeSlot(i, slot) {
+  return slot ? `Slot ${i + 1}: ${summary(slot.circuit)}, saved ${savedWhen(slot.savedAt)}` : `Slot ${i + 1}: empty`;
+}
+
+// The five slots beside the circuit. A filled slot loads when pressed.
+function renderSlots() {
+  const slots = readSlots(slotStorage);
+  ui.slotList.replaceChildren(...slots.map((slot, i) => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'slot';
+    b.dataset.load = i;
+    b.disabled = !slot;
+    const label = describeSlot(i, slot);
+    b.setAttribute('aria-label', slot ? `${label}. Press to load.` : label);
+    b.title = slot ? `${label}. Click to load.` : label;
+    b.innerHTML = `<span class="slot-number">${i + 1}</span>${slot ? thumbnailSVG(slot.circuit, { wireStyle: state.wireStyle }) : '<span class="slot-empty-label">Empty</span>'}`;
+    li.append(b);
+    return li;
+  }));
+}
+
+ui.slotList.addEventListener('click', (e) => {
+  const b = e.target.closest('.slot');
+  if (!b || b.disabled) return;
+  const i = Number(b.dataset.load);
+  const slot = readSlots(slotStorage)[i];
+  if (!slot) return;
+  state.undo.push(clone(state.circuit));
+  state.redo = [];
+  loadCircuit(slot.circuit, `Loaded slot ${i + 1} (saved ${savedWhen(slot.savedAt)}). Undo goes back to the previous circuit.`);
+});
+
+// The save overlay: five large cards with a picture of what each slot holds.
+let confirming = null; // slot number waiting for "Replace?" to be answered
+
+function renderSlotCards() {
+  const slots = readSlots(slotStorage);
+  ui.slotCards.replaceChildren(...slots.map((slot, i) => {
+    const li = document.createElement('li');
+    li.className = `slot-card${confirming === i ? ' is-confirming' : ''}`;
+    const picture = `<span class="slot-card-picture">${slot ? thumbnailSVG(slot.circuit, { wireStyle: state.wireStyle }) : 'Empty'}</span>`;
+    if (confirming === i) {
+      li.innerHTML = `<div class="slot-confirm">
+          <span class="slot-card-title">Slot ${i + 1}</span>
+          ${picture}
+          <span>Replace the circuit in slot ${i + 1}? It will be lost.</span>
+          <span class="slot-confirm-buttons">
+            <button type="button" class="button" data-replace="${i}">Replace</button>
+            <button type="button" class="button" data-keep="${i}">Keep it</button>
+          </span>
+        </div>`;
+    } else {
+      li.innerHTML = `<button type="button" class="slot-card-pick" data-slot="${i}">
+          <span class="slot-card-title">Slot ${i + 1}</span>
+          ${picture}
+          <span class="slot-card-meta">${slot ? `${summary(slot.circuit)}<br>Saved ${savedWhen(slot.savedAt)}` : ''}</span>
+          <span class="slot-card-action">${slot ? 'Replace…' : 'Save here'}</span>
+        </button>`;
+      li.querySelector('button').setAttribute('aria-label', `${describeSlot(i, slot)}. ${slot ? 'Press to replace it.' : 'Press to save here.'}`);
+    }
+    return li;
+  }));
+}
+
+function openSaveDialog() {
+  settings.close(false);
+  if (state.circuit.nodes.length === 0) {
+    say('The circuit is empty, so there is nothing to save.', { error: true });
+    return;
+  }
+  confirming = null;
+  renderSlotCards();
+  ui.saveDialog.showModal();
+  ui.slotCards.querySelector('button')?.focus();
+}
+
+function saveTo(i) {
+  const r = writeSlot(slotStorage, i, state.circuit);
+  if (r.error) {
+    ui.saveDialog.close();
+    say(r.error, { error: true });
+    return;
+  }
+  ui.saveDialog.close();
+  renderSlots();
+  say(`Saved in slot ${i + 1}.`);
+}
+
+ui.saveOpen.addEventListener('click', openSaveDialog);
+ui.saveClose.addEventListener('click', () => ui.saveDialog.close());
+ui.saveDialog.addEventListener('click', (e) => {
+  if (e.target === ui.saveDialog) { ui.saveDialog.close(); return; } // the backdrop
+  const pick = e.target.closest('[data-slot]');
+  const replace = e.target.closest('[data-replace]');
+  const keep = e.target.closest('[data-keep]');
+  if (pick) {
+    const i = Number(pick.dataset.slot);
+    if (readSlots(slotStorage)[i]) {
+      confirming = i;
+      renderSlotCards();
+      ui.slotCards.querySelector(`[data-keep="${i}"]`)?.focus();
+    } else {
+      saveTo(i);
+    }
+  } else if (replace) {
+    saveTo(Number(replace.dataset.replace));
+  } else if (keep) {
+    const i = Number(keep.dataset.keep);
+    confirming = null;
+    renderSlotCards();
+    ui.slotCards.querySelector(`[data-slot="${i}"]`)?.focus();
+  }
+});
+ui.saveDialog.addEventListener('close', () => { confirming = null; });
+
 // ---------- Start-up ----------
 
 function start() {
@@ -850,6 +958,7 @@ function start() {
   ui.showLabels.checked = state.labels;
   ui.wireStyle.value = state.wireStyle;
   render();
+  renderSlots();
 }
 
 start();

@@ -153,6 +153,57 @@ test.describe('logic gates tool', () => {
     await expect(page.locator('#wire-style')).toHaveValue('straight');
   });
 
+  test('save a circuit to a slot, then load it back', async ({ page }) => {
+    await expect(page.locator('.slot:not([disabled])')).toHaveCount(0);
+    await openSettings(page);
+    await page.click('#save-open');
+    const dialog = page.locator('#save-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('.slot-card')).toHaveCount(5);
+    await dialog.getByRole('button', { name: /Slot 2: empty/ }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('#explanation')).toHaveText('Saved in slot 2.');
+    await expect(page.locator('[data-load="1"] svg.thumb')).toBeVisible();
+
+    // Change the circuit, then load the slot: the half adder comes back.
+    await openSettings(page);
+    await page.selectOption('#examples', 'full-adder');
+    await expect(page.locator('.node-gate')).toHaveCount(5);
+    await page.locator('[data-load="1"]').click();
+    await expect(page.locator('.node-gate')).toHaveCount(2);
+    await expect(page.locator('#explanation')).toContainText('Loaded slot 2');
+    await page.click('#undo');
+    await expect(page.locator('.node-gate')).toHaveCount(5);
+
+    // Slots survive a refresh.
+    await page.reload();
+    await expect(page.locator('[data-load="1"]')).toBeEnabled();
+  });
+
+  test('saving over a filled slot asks first', async ({ page }) => {
+    await openSettings(page);
+    await page.click('#save-open');
+    await page.locator('#slot-cards [data-slot="0"]').click();
+
+    await openSettings(page);
+    await page.selectOption('#examples', 'nand-not');
+    await openSettings(page);
+    await page.click('#save-open');
+    await page.locator('#slot-cards [data-slot="0"]').click();
+    await expect(page.getByText('Replace the circuit in slot 1? It will be lost.')).toBeVisible();
+    await page.getByRole('button', { name: 'Keep it' }).click();
+    await expect(page.getByText('Replace the circuit in slot 1?')).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#save-dialog')).toBeHidden();
+    await expect(page.locator('[data-load="0"]')).toHaveAttribute('aria-label', /2 inputs, 2 gates/);
+
+    await openSettings(page);
+    await page.click('#save-open');
+    await page.locator('#slot-cards [data-slot="0"]').click();
+    await page.getByRole('button', { name: 'Replace', exact: true }).click();
+    await expect(page.locator('[data-load="0"]')).toHaveAttribute('aria-label', /1 input, 1 gate/);
+  });
+
   test('the gate reference lists all six gates', async ({ page }) => {
     await page.getByText('Gate reference').click();
     await expect(page.locator('#gate-ref > tbody > tr')).toHaveCount(6);

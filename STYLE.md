@@ -64,6 +64,7 @@ Dark mode redefines the colour tokens inside `@media (prefers-color-scheme: dark
 - **Settings menu**: a `.settings` wrapper holding `button.icon-button.cog` (with `aria-controls` and `aria-expanded`) and a `.settings-menu` that starts `hidden`. It is a two-column grid of label and control. Wire it up with `setupSettingsMenu(toggle, menu)` from `assets/settings-menu.js`, which handles opening, closing on an outside click, and Escape.
 - `.status-strip` holds `.status-box` elements (`.cell-label` and `.status-value`) for read-only values such as a program counter.
 - `details.reference.log` holds the log: `p.explanation` for the latest entry and `ol.history` for earlier ones. Both hide themselves when empty.
+- `dialog.dialog` is a large overlay (open it with `showModal()`, so Escape and focus work automatically) with a `.dialog-head` (title and a close icon button) and an optional `.dialog-note`. Use it for choices that need room, such as picking a save slot.
 - `details.reference` holds reference material: `table.ref`, then `h3.reference-notes-title` with `p.reference-notes` or `ul.reference-notes`. On narrow screens the table becomes stacked blocks.
 
 **Controls**

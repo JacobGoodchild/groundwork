@@ -99,3 +99,11 @@ Settings has a **Wires** option: Curved (the default), Right angles, or Straight
 - **Hops:** where two different signals cross, a small arc is drawn. With right angles it goes on the horizontal wire (and also on any near miss that's left); with straight lines it goes on the wire drawn later.
 - **Junction dots:** drawn wherever one signal splits into branches (three or more arms meeting), so a join always looks different from a crossing.
 - Curved wires don't get hops; curves cross at an angle, which already reads as a crossing. If it's wanted, curves could be split into short straight pieces and given hops too.
+
+## Saved circuits (logic gates)
+
+- Five slots, labelled 1 to 5, sit beside the circuit. Each shows a small picture of what it holds, or "Empty". Pressing a filled slot loads it; Undo goes back to the previous circuit.
+- Settings → **Save circuit…** opens a large overlay with a card for each slot, each with a picture, the number of inputs, gates and outputs, and when it was saved. An empty slot saves straight away. A filled slot asks "Replace the circuit in slot N? It will be lost." first.
+- Saved in the browser's localStorage on that device only (`groundwork.logic.slots.v1`). Damaged data counts as an empty slot, and a browser that blocks storage gets a plain error message.
+- New DOM-free modules, all unit-tested: `logic/slots.js` (reading and writing slots), `logic/thumbnail.js` (a circuit as an SVG picture, following the chosen wire style) and `logic/geometry.js` (node sizes and pin positions, now shared by the canvas and the thumbnails).
+- There is no "delete slot" yet; a slot is reused by saving over it. Export and import as a file (as VISION.md plans for the workshop) would make saved circuits portable between devices.
