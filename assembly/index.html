@@ -16,11 +16,11 @@
     <a class="quiet-link" href="../projects/">See more</a>
   </header>
 
-  <main id="main" class="sim">
-    <div class="panel sim-bar">
-      <h1 class="sim-title">Assembly simulator</h1>
+  <main id="main" class="tool">
+    <div class="panel tool-bar">
+      <h1 class="tool-title">Assembly simulator</h1>
 
-      <div class="toolbar sim-actions" role="toolbar" aria-label="Run controls">
+      <div class="toolbar tool-actions" role="toolbar" aria-label="Run controls">
         <button type="button" class="icon-button go" id="run" aria-label="Run" title="Run">
           <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
           <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5.5" width="3.5" height="13" rx="0.5" fill="currentColor"/><rect x="13.5" y="5.5" width="3.5" height="13" rx="0.5" fill="currentColor"/></svg>
@@ -79,7 +79,7 @@
       </div>
     </div>
 
-    <div class="sim-status">
+    <div class="status-strip">
       <div class="status-box">
         <span class="cell-label">Program counter</span>
         <span class="status-value" id="pc"></span>
@@ -114,7 +114,7 @@
       </section>
     </div>
 
-    <details class="reference" id="log" open>
+    <details class="reference log" id="log" open>
       <summary>Log</summary>
       <div class="reference-body">
         <p class="explanation" id="explanation" aria-live="polite"></p>

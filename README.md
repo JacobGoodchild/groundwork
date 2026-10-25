@@ -32,7 +32,7 @@ npm test
 | `index.html` | Home page |
 | `assembly/` | The assembly simulator. `aqa.js` is the parser and CPU (no page code), `examples.js` the example programs, `app.js` the page. |
 | `projects/` | The "See more" page. Edit `projects.js` to change the list. |
-| `assets/style.css` | Shared styles for every page. See `STYLE.md`. |
+| `assets/style.css`, `assets/settings-menu.js` | Shared styles and the settings menu used by every tool. See `STYLE.md`. |
 | `tests/` | Unit tests (`unit/`) and browser tests (`ui/`). |
 
 Pushing to `main` runs all the tests on GitHub Actions and, if they pass, publishes the site to GitHub Pages.

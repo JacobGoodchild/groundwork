@@ -229,8 +229,6 @@ main {
   margin: 0 0 var(--space-3);
 }
 
-.title-note { text-transform: none; letter-spacing: 0; font-weight: 400; }
-
 .info-line {
   font-size: var(--text-sm);
   color: var(--text-muted);
@@ -329,6 +327,59 @@ input[type="range"] { accent-color: var(--accent); }
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3) var(--space-4);
+}
+
+/* ---------- Tool layout (IDE style) ----------
+   A tool page is: tool bar, optional status strip, workspace panels,
+   then collapsible panels (log, reference). See STYLE.md. */
+
+.tool { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.tool-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+}
+.tool-title { font-size: var(--text-base); margin: 0; }
+.tool-actions { gap: var(--space-2); }
+.toolbar-gap { width: var(--space-3); }
+
+/* Settings: a cog at the right of the tool bar opening a small menu. */
+.settings { position: relative; margin-left: auto; }
+.settings-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 5;
+  width: min(22rem, calc(100vw - 2rem));
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.settings-menu[hidden] { display: none; }
+.settings-menu select, .settings-menu input[type="range"] { width: 100%; }
+.settings-menu .button-group { justify-self: start; }
+
+/* A row of read-only status values under the tool bar. */
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+}
+.status-strip .status-box { background: var(--surface); }
+
+@media (max-width: 40rem) {
+  .tool-title { width: 100%; }
 }
 
 /* ---------- Code editor ---------- */
@@ -519,6 +570,10 @@ button.cell:disabled { cursor: default; opacity: 1; }
 }
 .history li { padding: var(--space-1) 0; border-bottom: 1px solid var(--border); }
 .history .line-ref { font-family: var(--font-code); margin-right: var(--space-2); }
+.explanation:empty { display: none; }
+.explanation:empty + .history { border-top: 0; }
+.history:empty { display: none; }
+details.log > .reference-body { padding-top: 0; }
 
 /* ---------- Reference tables ---------- */
 
@@ -547,6 +602,11 @@ table.ref th, table.ref td {
 }
 table.ref th { color: var(--text-muted); font-weight: 600; }
 table.ref td:first-child { font-family: var(--font-code); white-space: nowrap; }
+
+.reference-notes-title { margin: var(--space-4) 0 var(--space-2); font-size: var(--text-sm); }
+p.reference-notes { margin: 0 0 var(--space-2); font-size: var(--text-sm); }
+ul.reference-notes { margin: 0 0 var(--space-2); padding-left: 1.25rem; font-size: var(--text-sm); }
+ul.reference-notes li + li { margin-top: var(--space-1); }
 
 @media (max-width: 40rem) {
   table.ref thead { display: none; }

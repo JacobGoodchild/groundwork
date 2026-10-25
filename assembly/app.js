@@ -6,6 +6,7 @@ import {
   REGISTER_COUNT, MEMORY_SIZE, DEFAULT_WORD_SIZE, WORD_SIZES,
 } from './aqa.js';
 import { EXAMPLES } from './examples.js';
+import { setupSettingsMenu } from '../assets/settings-menu.js';
 
 const STORAGE_KEY = 'groundwork.assembly.v1';
 const HISTORY_LENGTH = 20;
@@ -23,6 +24,8 @@ const ui = {
   explanation: $('explanation'), history: $('history'),
   settingsToggle: $('settings-toggle'), settingsMenu: $('settings-menu'),
 };
+
+const settings = setupSettingsMenu(ui.settingsToggle, ui.settingsMenu);
 
 const state = {
   machine: new Machine({ wordSize: DEFAULT_WORD_SIZE }),
@@ -531,33 +534,8 @@ ui.memRandom.addEventListener('click', () => setStart('mem', randomValues(MEMORY
 ui.examples.addEventListener('change', () => {
   const id = ui.examples.value;
   ui.examples.value = '';
-  closeSettings(false);
+  settings.close(false);
   loadExample(id);
-});
-
-// ---------- Settings menu ----------
-
-function openSettings() {
-  ui.settingsMenu.hidden = false;
-  ui.settingsToggle.setAttribute('aria-expanded', 'true');
-}
-
-function closeSettings(returnFocus = true) {
-  if (ui.settingsMenu.hidden) return;
-  ui.settingsMenu.hidden = true;
-  ui.settingsToggle.setAttribute('aria-expanded', 'false');
-  if (returnFocus) ui.settingsToggle.focus();
-}
-
-ui.settingsToggle.addEventListener('click', () => {
-  if (ui.settingsMenu.hidden) openSettings();
-  else closeSettings(false);
-});
-document.addEventListener('click', (e) => {
-  if (!ui.settingsMenu.hidden && !e.target.closest('.settings')) closeSettings(false);
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !ui.settingsMenu.hidden) closeSettings();
 });
 
 ui.format.addEventListener('change', () => {
