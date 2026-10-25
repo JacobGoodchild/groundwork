@@ -72,6 +72,15 @@ export function outputs(circuit) {
   return circuit.nodes.filter((n) => n.kind === 'output').sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// How a name is displayed: one capital letter followed by lowercase letters
+// or digits is written with the ending as a subscript, as in exam papers:
+// Cin -> C with subscript "in", A1 -> A with subscript "1". Other names are
+// shown as they are. Returns { main, sub } (sub is '' when there is none).
+export function nameParts(name) {
+  const m = /^([A-Z])([a-z0-9]+)$/.exec(name);
+  return m ? { main: m[1], sub: m[2] } : { main: name, sub: '' };
+}
+
 // A short human label for a node, used in the log and for screen readers:
 // "input A", "output Q", "AND gate 2".
 export function describe(circuit, node) {

@@ -108,3 +108,7 @@ Settings has a **Wires** option: Curved (the default), Right angles, or Straight
 - New DOM-free modules, all unit-tested: `logic/slots.js` (reading and writing slots), `logic/thumbnail.js` (a circuit as an SVG picture, following the chosen wire style) and `logic/geometry.js` (node sizes and pin positions, now shared by the canvas and the thumbnails).
 - Now **six** slots (circuits saved when there were five still load). Each filled slot can be **deleted**: from the small × in its corner on the side strip, or the Delete button on its card in the save overlay. Both ask "Delete…? It will be lost." first, because deleting can't be undone.
 - Export and import as a file (as VISION.md plans for the workshop) would make saved circuits portable between devices.
+
+## Subscripts in names
+
+Input and output names written as one capital letter followed by lowercase letters or digits are shown with the ending as a subscript, as in exam papers: `Cin` is shown as C<sub>in</sub>, `Cout` as C<sub>out</sub>, `A1` as A<sub>1</sub>. This applies on the canvas, in the expressions, in truth table headings and in slot pictures. Names are still typed and stored as plain text (`Cin`), and the log uses the plain form. Done with HTML `<sub>` and an SVG `tspan`, not LaTeX, so no extra library is needed. The rule is `nameParts()` in `logic/logic.js`.

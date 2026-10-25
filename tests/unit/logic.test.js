@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   GATES, GATE_TYPES, emptyCircuit, addNode, removeNode, connect, rename, evaluate,
   truthTable, expression, toText, isValidCircuit, clone, wireInto, describe as describeNode,
-  MAX_INPUTS,
+  MAX_INPUTS, nameParts,
 } from '../../logic/logic.js';
 import { EXAMPLES } from '../../logic/examples.js';
 
@@ -247,5 +247,19 @@ describe('saved data', () => {
     assert.equal(isValidCircuit({ nodes: [], wires: [{ from: 'x', to: 'y', pin: 0 }] }), false);
     assert.equal(isValidCircuit({ nodes: [{ id: 'g1', kind: 'gate', type: 'MUX', x: 0, y: 0 }], wires: [] }), false);
     assert.equal(isValidCircuit(emptyCircuit()), true);
+  });
+});
+
+describe('names', () => {
+  test('a capital letter followed by lowercase letters or digits has a subscript', () => {
+    assert.deepEqual(nameParts('Cin'), { main: 'C', sub: 'in' });
+    assert.deepEqual(nameParts('Cout'), { main: 'C', sub: 'out' });
+    assert.deepEqual(nameParts('A1'), { main: 'A', sub: '1' });
+  });
+
+  test('other names are shown as they are', () => {
+    assert.deepEqual(nameParts('A'), { main: 'A', sub: '' });
+    assert.deepEqual(nameParts('AB'), { main: 'AB', sub: '' });
+    assert.deepEqual(nameParts('cin'), { main: 'cin', sub: '' });
   });
 });

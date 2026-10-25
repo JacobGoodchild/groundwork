@@ -327,3 +327,7 @@ table.ref.gate-ref .truth-table th { color: var(--text-muted); font-weight: 600;
 @media (max-width: 40rem) {
   .slot-cards { grid-template-columns: 1fr; }
 }
+
+/* Subscripts in names, such as the "in" of Cin. */
+.circuit .name-sub, .thumb .name-sub { font-size: 75%; }
+.name sub { font-size: 72%; line-height: 0; }

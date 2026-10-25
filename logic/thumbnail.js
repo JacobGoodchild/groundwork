@@ -1,12 +1,18 @@
 // A small picture of a circuit as an SVG string, for the saved-circuit slots.
 // No DOM code. Colours come from the page's CSS classes.
 
-import { getNode } from './logic.js';
+import { getNode, nameParts } from './logic.js';
 import { gateShape } from './shapes.js';
 import { SCALE, SIZE, inPinPos, outPinPos, curvedPath } from './geometry.js';
 import { route, pathData } from './wiring.js';
 
 const escape = (text) => String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+// Cin is drawn as C with a smaller, lower "in", as on the canvas.
+function svgName(name) {
+  const { main, sub } = nameParts(name);
+  return sub ? `${escape(main)}<tspan class="name-sub" dy="0.3em">${escape(sub)}</tspan>` : escape(name);
+}
 
 export function thumbnailSVG(circuit, { wireStyle = 'curved', padding = 24 } = {}) {
   if (circuit.nodes.length === 0) return '';
@@ -44,9 +50,9 @@ export function thumbnailSVG(circuit, { wireStyle = 'curved', padding = 24 } = {
       return `<g transform="${at}">${parts.join('')}</g>`;
     }
     if (n.kind === 'input') {
-      return `<g transform="${at}"><path class="lead" d="M52 16 H62"/><rect class="switch" width="52" height="32" rx="4"/><text class="node-name" x="7" y="20.5">${escape(n.name)}</text></g>`;
+      return `<g transform="${at}"><path class="lead" d="M52 16 H62"/><rect class="switch" width="52" height="32" rx="4"/><text class="node-name" x="7" y="20.5">${svgName(n.name)}</text></g>`;
     }
-    return `<g transform="${at}"><path class="lead" d="M-10 16 H4"/><circle class="lamp" cx="20" cy="16" r="16"/><text class="node-name" x="41" y="20.5">${escape(n.name)}</text></g>`;
+    return `<g transform="${at}"><path class="lead" d="M-10 16 H4"/><circle class="lamp" cx="20" cy="16" r="16"/><text class="node-name" x="41" y="20.5">${svgName(n.name)}</text></g>`;
   });
 
   return `<svg class="thumb" viewBox="${box.join(' ')}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${wires.join('')}${dots.join('')}${nodes.join('')}</svg>`;

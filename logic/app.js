@@ -4,7 +4,7 @@
 import {
   GATE_TYPES, GATES, emptyCircuit, clone, addNode, removeNode, removeWire, connect, rename,
   evaluate, truthTable, expression, needsBrackets, SYMBOLS, getNode, pinCount, hasOutput,
-  inputs, outputs, describe, isValidCircuit, wireInto,
+  inputs, outputs, describe, isValidCircuit, wireInto, nameParts,
 } from './logic.js';
 import { EXAMPLES } from './examples.js';
 import { gateShape, gateSymbolSVG, GATE_WIDTH, GATE_HEIGHT } from './shapes.js';
@@ -252,7 +252,7 @@ function drawNode(node, values) {
     el('path', { d: `M${LOCAL.input.w} 16 H${LOCAL.input.w + 10}`, class: 'lead' }, g);
     el('rect', { x: 0, y: 0, width: LOCAL.input.w, height: LOCAL.input.h, rx: 4, class: `switch ${valueClass(v)}` }, g);
     const nameText = el('text', { x: 7, y: 20.5, class: 'node-name' }, g);
-    nameText.textContent = node.name;
+    setSvgName(nameText, node.name);
     const valueText = el('text', { x: LOCAL.input.w - 10, y: 20.5, class: 'node-value' }, g);
     valueText.textContent = v;
     bodyLabel = `Input ${node.name}, value ${v}. Press Enter to switch it, F2 to rename.`;
@@ -262,7 +262,7 @@ function drawNode(node, values) {
     const valueText = el('text', { x: 20, y: 20.5, class: 'node-value centred' }, g);
     valueText.textContent = v ?? '?';
     const nameText = el('text', { x: 41, y: 20.5, class: 'node-name' }, g);
-    nameText.textContent = node.name;
+    setSvgName(nameText, node.name);
     bodyLabel = `Output ${node.name}, value ${v ?? 'unknown'}. F2 renames it.`;
   }
   outer.setAttribute('tabindex', '0');
@@ -315,6 +315,27 @@ function drawPending() {
   }
 }
 
+// ---------- Names with subscripts ----------
+
+// A name for HTML: Cin becomes C<sub>in</sub>. The screen reader text stays "Cin".
+function nameHTML(name) {
+  const { main, sub } = nameParts(name);
+  if (!sub) return document.createTextNode(name);
+  const span = document.createElement('span');
+  span.className = 'name';
+  const subEl = document.createElement('sub');
+  subEl.textContent = sub;
+  span.append(main, subEl);
+  return span;
+}
+
+// A name for SVG text: the ending is drawn smaller and lower.
+function setSvgName(textEl, name) {
+  const { main, sub } = nameParts(name);
+  textEl.textContent = main;
+  if (sub) el('tspan', { class: 'name-sub', dy: '0.3em' }, textEl).textContent = sub;
+}
+
 // ---------- Expressions and truth table ----------
 
 function expressionDOM(tree) {
@@ -323,7 +344,7 @@ function expressionDOM(tree) {
     span.className = 'expr-missing';
     span.textContent = '?';
   } else if (tree.var) {
-    span.textContent = tree.var;
+    span.append(nameHTML(tree.var));
   } else if (tree.not) {
     span.className = 'overbar';
     span.append(expressionDOM(tree.not));
@@ -353,10 +374,10 @@ function renderExpressions() {
     box.className = 'status-box';
     const label = document.createElement('span');
     label.className = 'cell-label';
-    label.textContent = `Output ${o.name}`;
+    label.append('Output ', nameHTML(o.name));
     const value = document.createElement('span');
     value.className = 'status-value expr';
-    value.append(`${o.name} = `, expressionDOM(expression(state.circuit, o.id)));
+    value.append(nameHTML(o.name), ' = ', expressionDOM(expression(state.circuit, o.id)));
     box.append(label, value);
     return box;
   }));
@@ -378,13 +399,13 @@ function renderTruthTable() {
   t.inputs.forEach((name) => {
     const th = document.createElement('th');
     th.scope = 'col';
-    th.textContent = name;
+    th.append(nameHTML(name));
     head.append(th);
   });
   t.outputs.forEach((name, i) => {
     const th = document.createElement('th');
     th.scope = 'col';
-    th.textContent = name;
+    th.append(nameHTML(name));
     if (i === 0) th.className = 'first-output';
     head.append(th);
   });

@@ -4,6 +4,11 @@ This document explains what Groundwork is ultimately for, so that every session 
 
 If a request in a session conflicts with this file, follow the request and note the change here.
 
+**Changes since the first version** (agreed with the owner):
+- 3.4: the instruction encoding follows AQA's opcode-plus-operand model from specification 4.7.3.3, with the addressing mode in the opcode, rather than being invented freely.
+- 3.6: levels follow the IDE style the owner chose for the tools: one short goal, no on-screen instructions about using the page.
+- Chapters 5 and 6: added the stored program concept (specification 4.7.2), which was missing.
+
 ---
 
 ## 1. What Groundwork is
@@ -78,7 +83,7 @@ The owner wants to see "how data flows through those logic gates and it actually
 The moment the owner most wants to see: **how a pattern of 1s and 0s makes the computer do something.** Show it explicitly:
 
 1. An assembly line, for example `ADD R1, R2, #5`.
-2. The same instruction as binary, split into labelled fields (opcode, destination register, source register, operand). AQA does not define a binary encoding for its assembly language, so the workshop defines its own simple one and **says clearly that it is Groundwork's own encoding**, not AQA's.
+2. The same instruction as binary, split into labelled fields. AQA does not fix a binary encoding for its assembly language, but the specification (4.7.3.3) does describe the model to use: an instruction is an **opcode** followed by one or more **operands** (a value, a memory address or a register), and the opcode bits include the **addressing mode** (immediate or direct, 4.7.3.4), so the opcode says both what to do and how to read the operand. AQA's own example is an 8-bit instruction: a 4-bit opcode (3 bits for the operation, 1 bit for the addressing mode) and a 4-bit operand. The workshop's encoding follows this model, scaled up as needed to fit AQA's instructions and registers, and **says clearly that the exact bit layout is Groundwork's own**, while the opcode-plus-operand structure is AQA's.
 3. The decoder: the opcode bits go into a decoder circuit the student built, and exactly one control line switches on.
 4. That control line visibly enables the parts it controls (the ALU set to add, the right register selected to receive the result).
 
@@ -95,7 +100,7 @@ Seeing "these 4 bits switched on the ADD line, which made the ALU add" is the po
 All of `STYLE.md` applies. In particular, for the workshop:
 - No XP, stars, badges, streaks, confetti, sound effects, mascots or story characters.
 - No welcome screens or motivational text. Opening a level shows the level.
-- Instructions read like a good teacher's worksheet: one or two short sentences saying what to build and what it must do.
+- Levels feel like the tools: an IDE, not a tutorial page. Each level has one short goal (one or two sentences saying what to build and what it must do) and nothing else on screen telling the student how to use the page. Explanation lives in the log, the hints and the reference panel.
 - The site should feel like a carefully made textbook companion that a person built.
 
 ---
@@ -146,13 +151,14 @@ Purpose: show that a gate isn't magic.
 - One-bit register, then an 8-bit register (copy), then a register file (copies of the student's register, enough for R0 to R12).
 - A small RAM: addresses, a read/write control line, and an address decoder the student builds.
 
-### Chapter 5: Buses and architecture (AQA 4.7.1)
+### Chapter 5: Buses and architecture (AQA 4.7.1, 4.7.2)
 
 - The address bus, data bus and control bus, drawn as in 3.3.
 - Connect the processor parts to memory with buses.
+- **The stored program concept** (AQA 4.7.2): machine code instructions are stored in main memory and fetched and executed one at a time by the processor. From this chapter on, the program is shown sitting in memory as binary, next to the data. (The assembly simulator tool keeps the program separately, which is fine for a sandbox; the workshop shows it properly.)
 - **Von Neumann and Harvard**: build both. In Von Neumann, instructions and data share one memory and one set of buses, so fetching an instruction and reading data take turns. In Harvard, they have separate memories and buses. Show the difference running the same program side by side, with a count of how many ticks each takes.
 
-### Chapter 6: The processor (AQA 4.7.3)
+### Chapter 6: The processor (AQA 4.7.2, 4.7.3)
 
 - The dedicated registers: PC, CIR, MAR, MBR and SR (status register, holding the result of `CMP`).
 - The control unit and the instruction decoder (3.4).

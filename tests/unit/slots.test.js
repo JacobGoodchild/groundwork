@@ -91,7 +91,7 @@ describe('thumbnails', () => {
     assert.equal((svg.match(/class="thumb-wire"/g) ?? []).length, fullAdder().wires.length);
     assert.equal((svg.match(/class="switch"/g) ?? []).length, 3);
     assert.equal((svg.match(/class="lamp"/g) ?? []).length, 2);
-    assert.match(svg, />Cout</);
+    assert.match(svg, />C<tspan class="name-sub" dy="0.3em">out<\/tspan></);
   });
 
   test('follow the wire style', () => {
