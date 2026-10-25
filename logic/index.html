@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logic gates · Groundwork</title>
+  <meta name="description" content="Build logic gate circuits and see their truth tables and Boolean expressions.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="circuit.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="../">Groundwork</a>
+    <a class="quiet-link" href="../projects/">See more</a>
+  </header>
+
+  <main id="main" class="tool">
+    <div class="panel tool-bar">
+      <h1 class="tool-title">Logic gates</h1>
+
+      <div class="toolbar tool-actions palette" role="toolbar" aria-label="Add to circuit" id="palette"></div>
+
+      <div class="toolbar tool-actions" role="toolbar" aria-label="Edit">
+        <button type="button" class="icon-button" id="undo" aria-label="Undo" title="Undo (Ctrl+Z)">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4.5 11.5 9 16"/><path d="M5 11.5h9.5a5 5 0 0 1 0 10H11"/></svg>
+        </button>
+        <button type="button" class="icon-button" id="redo" aria-label="Redo" title="Redo (Ctrl+Shift+Z)">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7l4.5 4.5L15 16"/><path d="M19 11.5H9.5a5 5 0 0 0 0 10H13"/></svg>
+        </button>
+        <button type="button" class="icon-button" id="delete" aria-label="Delete selected" title="Delete selected (Delete)">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 13h9l1-13"/></svg>
+        </button>
+      </div>
+
+      <div class="settings">
+        <button type="button" class="icon-button cog" id="settings-toggle" aria-label="Settings" title="Settings" aria-expanded="false" aria-controls="settings-menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="settings-menu" id="settings-menu" hidden>
+          <label for="examples">Example</label>
+          <select id="examples">
+            <option value="">Choose an example…</option>
+          </select>
+
+          <label for="show-labels">Gate names</label>
+          <span><input type="checkbox" id="show-labels" checked> <label for="show-labels">Show on gates</label></span>
+
+          <span>Circuit</span>
+          <span><button type="button" class="button" id="clear">Clear circuit</button></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-strip" id="expressions" aria-label="Boolean expressions"></div>
+
+    <div class="circuit-grid">
+      <section class="panel" aria-labelledby="canvas-title">
+        <h2 class="panel-title" id="canvas-title">Circuit</h2>
+        <div class="canvas-wrap" id="canvas-wrap">
+          <svg class="circuit show-labels" id="canvas" viewBox="0 0 960 540" role="group" aria-label="Circuit diagram">
+            <g id="wires"></g>
+            <path id="pending-wire" class="wire pending" d="" />
+            <g id="nodes"></g>
+          </svg>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="table-title">
+        <h2 class="panel-title" id="table-title">Truth table</h2>
+        <div class="truth-wrap" id="truth"></div>
+      </section>
+    </div>
+
+    <details class="reference log" id="log" open>
+      <summary>Log</summary>
+      <div class="reference-body">
+        <p class="explanation" id="explanation" aria-live="polite"></p>
+        <ol class="history" id="history" aria-label="Earlier changes, newest first"></ol>
+      </div>
+    </details>
+
+    <details class="reference" id="reference">
+      <summary>Gate reference</summary>
+      <div class="reference-body">
+        <table class="ref gate-ref" id="gate-ref">
+          <thead>
+            <tr><th scope="col">Gate</th><th scope="col">Symbol</th><th scope="col">Boolean expression</th><th scope="col">Truth table</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <h3 class="reference-notes-title">Notation</h3>
+        <ul class="reference-notes">
+          <li>NOT is written as a bar over what it applies to.</li>
+          <li>AND is written as a dot: A.B</li>
+          <li>OR is written as a plus sign: A + B</li>
+          <li>XOR is written as a circled plus sign: A ⊕ B</li>
+        </ul>
+      </div>
+    </details>
+  </main>
+
+  <footer class="site-footer">
+    <p>Groundwork follows the AQA A-level Computer Science specification (7517). It is not made or endorsed by AQA.</p>
+  </footer>
+</body>
+</html>

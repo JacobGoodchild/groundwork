@@ -62,3 +62,27 @@ The AQA document does not cover the following, so these are this simulator's own
 - **Instruction reference** now uses the exact wording of the AQA instruction set sheet, including its "Labels" and "Interpretation of <operand2>" sections, and nothing else.
 - **Comments**: the AQA instruction set doesn't define a comment syntax, and the assembly programs in AQA past papers (A-level Paper 2, November 2020 to June 2023) have no comments. They put labels on their own line and indent instructions by two spaces. The default program and all the examples now follow that style with no comments. The simulator still quietly ignores anything after `//`, so a student's own notes don't cause errors, but the page doesn't advertise it.
 - **Second colour**: the Run button is green (`--go` token), at the owner's request. Teal stays the accent everywhere else.
+
+## Logic gates tool (`/logic/`)
+
+What it does:
+- A circuit builder using the six gates in the AQA specification (4.6.4.1): NOT, AND, OR, XOR, NAND, NOR. They are drawn as ANSI/IEEE 91-1984 distinctive-shape symbols, which the spec says students must know.
+- Add inputs, outputs and gates from the tool bar, wire them up and click inputs to switch them between 0 and 1. Wires carrying 1 are teal, 0 is grey, and unconnected parts are dashed.
+- The truth table and the Boolean expression for each output (AQA notation: overbar, `.`, `+`, `⊕`) update as you build. Clicking a truth table row sets the inputs to that row.
+- Undo and redo, delete, rename (F2 or double-click), keyboard moving (arrow keys) and keyboard wiring (Enter on a pin, then Enter on another).
+- Examples in the settings menu: half adder (the default), full adder, NOT made from NAND, A.B + C, and De Morgan's law shown as two circuits with identical truth tables.
+- `logic/logic.js` is the DOM-free core (model, evaluation, truth tables, expressions), tested in `tests/unit/logic.test.js`. `logic/shapes.js` holds the gate symbols, shared by the canvas, tool bar and reference.
+
+Decisions:
+- Gates have two inputs (NOT has one), as in almost all AQA questions.
+- Up to 5 inputs (a 32-row truth table) and 4 outputs.
+- Wires that would feed an output back into an earlier gate are refused. Feedback is how flip-flops work, so it belongs with the D-type flip-flop.
+- Truth table rows count up in binary with the first input as the most significant bit, as AQA lays them out. Inputs and outputs are listed in alphabetical order.
+- XOR is always bracketed when it is combined with another operator, for example (A ⊕ B).Cin, to avoid any doubt about precedence.
+- Switching an input isn't an undoable change; editing the circuit is.
+
+Not done yet / ideas for next time:
+- The edge-triggered D-type flip-flop (4.6.4.1, "be familiar with the use of"). It needs a clock and feedback, so it would suit its own tool or a "memory" step in the workshop.
+- Building a circuit from a typed Boolean expression, and checking a student's circuit against a target truth table (good for practising "draw an equivalent circuit").
+- On a phone the canvas works but is small. Pinch-to-zoom works, but a zoom control would help.
+- Boolean algebra (4.6.5): simplification with identities and De Morgan's laws.
