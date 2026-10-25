@@ -43,9 +43,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Collect the site files
+        shell: bash
         run: |
+          # Everything except development files, so new tools are included automatically.
+          shopt -s extglob
           mkdir _site
-          cp -r index.html assets assembly projects _site/
+          cp -r !(_site|node_modules|tests|scripts|test-results|playwright-report|package.json|package-lock.json|playwright.config.js|*.md) _site/
+          # Every page the home page links to must be in the site.
+          for path in $(grep -o 'href="[a-z-]*/"' index.html | cut -d'"' -f2); do
+            test -f "_site/${path}index.html" || { echo "Missing from the site: ${path}"; exit 1; }
+          done
+          ls _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -86,3 +86,7 @@ Not done yet / ideas for next time:
 - Building a circuit from a typed Boolean expression, and checking a student's circuit against a target truth table (good for practising "draw an equivalent circuit").
 - On a phone the canvas works but is small. Pinch-to-zoom works, but a zoom control would help.
 - Boolean algebra (4.6.5): simplification with identities and De Morgan's laws.
+
+## Deploy fix
+
+The first logic gates deploy left `logic/` off the live site, because the workflow copied a fixed list of folders. The deploy now copies everything except development files (tests, scripts, Markdown, npm and Playwright files), and fails if any page linked from the home page is missing.
