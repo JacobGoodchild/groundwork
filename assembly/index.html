@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assembly simulator · Groundwork</title>
+  <meta name="description" content="Write and step through programs in the AQA A-level assembly language.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="simulator.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="../">Groundwork</a>
+    <a class="quiet-link" href="../projects/">See more</a>
+  </header>
+
+  <main id="main" class="sim">
+    <div class="sim-heading">
+      <h1>Assembly simulator</h1>
+      <p class="muted">Write a program in the editor, then press Step to run one instruction at a time.</p>
+    </div>
+
+    <div class="panel sim-controls">
+      <div class="toolbar" role="toolbar" aria-label="Run controls">
+        <button type="button" class="button primary" id="step">Step</button>
+        <button type="button" class="button" id="step-back">Step back</button>
+        <button type="button" class="button" id="run">Run</button>
+        <button type="button" class="button" id="reset">Reset</button>
+        <label class="field">Speed
+          <input type="range" id="speed" min="1" max="10" value="5">
+        </label>
+      </div>
+      <div class="toolbar sim-setup">
+        <label class="field">Examples
+          <select id="examples">
+            <option value="">Choose an example…</option>
+          </select>
+        </label>
+        <span class="field" role="group" aria-labelledby="reg-start-label">
+          <span id="reg-start-label">Registers</span>
+          <span class="button-group">
+            <button type="button" class="button" id="registers-zero">Zero</button>
+            <button type="button" class="button" id="registers-random">Random</button>
+          </span>
+        </span>
+        <span class="field" role="group" aria-labelledby="mem-start-label">
+          <span id="mem-start-label">Memory</span>
+          <span class="button-group">
+            <button type="button" class="button" id="memory-zero">Zero</button>
+            <button type="button" class="button" id="memory-random">Random</button>
+          </span>
+        </span>
+        <label class="field">Number format
+          <select id="format">
+            <option value="dec">Denary</option>
+            <option value="bin">Binary</option>
+            <option value="hex">Hexadecimal</option>
+          </select>
+        </label>
+        <label class="field">Word size
+          <select id="word-size">
+            <option value="8">8-bit</option>
+            <option value="16">16-bit</option>
+            <option value="32">32-bit</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <section class="panel sim-explain" aria-labelledby="explain-title">
+      <h2 class="panel-title" id="explain-title">What happened</h2>
+      <p class="explanation" id="explanation" aria-live="polite">Write a program in the editor, then press Step to run one instruction at a time.</p>
+      <ol class="history" id="history" aria-label="Earlier steps, newest first"></ol>
+    </section>
+
+    <div class="sim-grid">
+      <section class="panel sim-editor" aria-labelledby="editor-title">
+        <h2 class="panel-title"><label id="editor-title" for="code">Program</label></h2>
+        <div class="code-editor">
+          <div class="code-gutter" id="gutter" aria-hidden="true"></div>
+          <div class="code-area">
+            <div class="code-backdrop" id="backdrop" aria-hidden="true"></div>
+            <textarea class="code-input" id="code" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-describedby="errors"></textarea>
+          </div>
+        </div>
+        <ul class="error-list" id="errors" aria-live="polite"></ul>
+      </section>
+
+      <section class="panel sim-registers" aria-labelledby="registers-title">
+        <h2 class="panel-title" id="registers-title">Registers</h2>
+        <div class="cell-grid" id="registers"></div>
+        <div class="status-row">
+          <div class="status-box">
+            <span class="cell-label">Program counter</span>
+            <span class="status-value" id="pc"></span>
+          </div>
+          <div class="status-box">
+            <span class="cell-label">Last comparison</span>
+            <span class="status-value" id="comparison"></span>
+          </div>
+        </div>
+        <p class="info-line">Click a register or memory location to change its value.</p>
+      </section>
+
+      <section class="panel sim-memory" aria-labelledby="memory-title">
+        <h2 class="panel-title" id="memory-title">Memory <span class="title-note">(address above value)</span></h2>
+        <div class="cell-grid" id="memory"></div>
+        <p class="info-line">In this version the program is kept separately, not in these 26 memory locations. In a Von Neumann computer, the program and its data share the same memory.</p>
+      </section>
+    </div>
+
+    <details class="reference" id="reference">
+      <summary>Instruction reference</summary>
+      <div class="reference-body">
+        <table class="ref">
+          <thead>
+            <tr><th scope="col">Instruction</th><th scope="col">Meaning</th><th scope="col">Example</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>LDR Rd, &lt;memory ref&gt;</td><td>Load the value in memory location &lt;memory ref&gt; into register d.</td><td>LDR R1, 10</td></tr>
+            <tr><td>STR Rd, &lt;memory ref&gt;</td><td>Store the value in register d into memory location &lt;memory ref&gt;.</td><td>STR R1, 10</td></tr>
+            <tr><td>ADD Rd, Rn, &lt;operand2&gt;</td><td>Add &lt;operand2&gt; to the value in register n and store the result in register d.</td><td>ADD R1, R2, #5</td></tr>
+            <tr><td>SUB Rd, Rn, &lt;operand2&gt;</td><td>Subtract &lt;operand2&gt; from the value in register n and store the result in register d.</td><td>SUB R1, R2, R3</td></tr>
+            <tr><td>MOV Rd, &lt;operand2&gt;</td><td>Copy &lt;operand2&gt; into register d.</td><td>MOV R1, #0</td></tr>
+            <tr><td>CMP Rn, &lt;operand2&gt;</td><td>Compare the value in register n with &lt;operand2&gt;. The result is used by the next conditional branch.</td><td>CMP R1, #10</td></tr>
+            <tr><td>B &lt;label&gt;</td><td>Always branch to the instruction at &lt;label&gt;.</td><td>B loop</td></tr>
+            <tr><td>B&lt;condition&gt; &lt;label&gt;</td><td>Branch to &lt;label&gt; if the last comparison met the condition: EQ equal, NE not equal, GT greater than, LT less than.</td><td>BEQ done</td></tr>
+            <tr><td>AND Rd, Rn, &lt;operand2&gt;</td><td>Bitwise AND of the value in register n and &lt;operand2&gt;, stored in register d.</td><td>AND R1, R2, #1</td></tr>
+            <tr><td>ORR Rd, Rn, &lt;operand2&gt;</td><td>Bitwise OR of the value in register n and &lt;operand2&gt;, stored in register d.</td><td>ORR R1, R2, #8</td></tr>
+            <tr><td>EOR Rd, Rn, &lt;operand2&gt;</td><td>Bitwise exclusive OR of the value in register n and &lt;operand2&gt;, stored in register d.</td><td>EOR R1, R2, R3</td></tr>
+            <tr><td>MVN Rd, &lt;operand2&gt;</td><td>Bitwise NOT of &lt;operand2&gt; (every bit flipped), stored in register d.</td><td>MVN R1, R2</td></tr>
+            <tr><td>LSL Rd, Rn, &lt;operand2&gt;</td><td>Logical shift left the value in register n by &lt;operand2&gt; places, stored in register d.</td><td>LSL R1, R2, #2</td></tr>
+            <tr><td>LSR Rd, Rn, &lt;operand2&gt;</td><td>Logical shift right the value in register n by &lt;operand2&gt; places, stored in register d.</td><td>LSR R1, R2, #1</td></tr>
+            <tr><td>HALT</td><td>Stop the program.</td><td>HALT</td></tr>
+          </tbody>
+        </table>
+        <h3 class="reference-notes-title">Notes</h3>
+        <ul class="reference-notes">
+          <li><code>&lt;operand2&gt;</code> is either <code>#n</code>, a denary value such as <code>#25</code>, or <code>Rm</code>, the value in a register such as <code>R6</code>.</li>
+          <li><code>&lt;memory ref&gt;</code> is a memory address written as a plain number, such as <code>10</code>. Addresses go from 0 to 25.</li>
+          <li>The registers are R0 to R12.</li>
+          <li>A label is a name followed by a colon, such as <code>loop:</code>, at the start of a line. An instruction can follow it on the same line.</li>
+          <li>Anything after <code>//</code> on a line is a comment and is ignored.</li>
+          <li>Values are unsigned. If a result does not fit in the word size, it wraps round.</li>
+        </ul>
+      </div>
+    </details>
+  </main>
+
+  <footer class="site-footer">
+    <p>Groundwork follows the AQA A-level Computer Science specification (7517). It is not made or endorsed by AQA.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,38 @@
+/* Layout for the assembly simulator page only.
+   Colours, buttons, cells and the editor come from ../assets/style.css. */
+
+.sim { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.sim-heading p { margin: 0; }
+.sim-heading h1 { margin-bottom: var(--space-1); }
+
+.sim-controls { display: flex; flex-direction: column; gap: var(--space-3); }
+.sim-setup { padding-top: var(--space-3); border-top: 1px solid var(--border); }
+
+.sim-grid {
+  display: grid;
+  grid-template-columns: minmax(20rem, 1.6fr) minmax(14rem, 1fr) minmax(14rem, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.status-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.reference-notes-title { margin-top: var(--space-4); font-size: var(--text-sm); }
+.reference-notes { margin: 0; padding-left: 1.25rem; font-size: var(--text-sm); }
+.reference-notes li + li { margin-top: var(--space-1); }
+
+@media (max-width: 60rem) {
+  .sim-grid { grid-template-columns: 1fr 1fr; }
+  .sim-editor { grid-column: 1 / -1; }
+}
+
+@media (max-width: 40rem) {
+  .sim-grid { grid-template-columns: 1fr; }
+  .code-editor { height: 20rem; }
+}
