@@ -32,7 +32,7 @@ Tools should feel like a well-made IDE or desktop app: the work area comes first
 ## Anatomy of a tool page
 
 ```
-site header             Groundwork ............................ See more
+site header             Groundwork
 .tool-bar               Title  [run] [reset]  [step back] [step] ... [cog]
 .status-strip           [ status value ] [ status value ]
 workspace               .panel  .panel  .panel   (tool's own grid)
@@ -79,7 +79,7 @@ Dark mode redefines the colour tokens inside `@media (prefers-color-scheme: dark
 
 **Site pages**
 - `.site-header`, `main`, `.site-footer`. Copy the header and footer markup from an existing page.
-- Text pages use `main.prose`, `.entry-list`, `.section-label` and `.tag`. The projects page uses its own card layout in `projects/projects.css`.
+- Text pages use `main.prose`, `.entry-list`, `.section-label` and `.tag`. The home page is the exception to the one-accent rule: it uses pastel areas (rounded boxes, which can sit inside each other) from `assets/home.css`.
 
 ## Accessibility
 

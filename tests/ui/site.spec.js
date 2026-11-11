@@ -7,42 +7,41 @@ const openSettings = async (page) => {
 };
 
 test.describe('home page', () => {
-  test('shows the site name, a description and the tool list', async ({ page }) => {
+  test('shows each area, with areas inside areas', async ({ page }) => {
     await page.goto('./');
     await expect(page).toHaveTitle('Groundwork');
     await expect(page.locator('h1')).toHaveText('Groundwork');
-    await expect(page.getByText('Interactive tools for learning how computers work')).toBeVisible();
-    await page.getByRole('link', { name: 'Assembly simulator' }).click();
+    for (const name of ['Featured', 'Academic', 'Libraries', 'Games and interactive']) {
+      await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
+    }
+    const academic = page.locator('.area.academic');
+    await expect(academic.getByRole('heading', { level: 3, name: 'Research' })).toBeVisible();
+    await expect(academic.getByRole('heading', { level: 3, name: 'A-level Computer Science' })).toBeVisible();
+    await expect(page.locator('.site-header').getByRole('link', { name: 'See more' })).toHaveCount(0);
+  });
+
+  test('lists the papers and projects, external ones opening in a new tab', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('.research a.card')).toHaveCount(5);
+    await expect(page.locator('.research').getByText('Answers to some recent conjectures')).toBeVisible();
+    const external = page.locator('a.card[href^="https://"]');
+    await expect(external).toHaveCount(10);
+    for (const link of await external.all()) await expect(link).toHaveAttribute('target', '_blank');
+    await expect(page.getByRole('img', { name: /Apex Ring/ })).toBeVisible();
+    await expect(page.locator('.tag', { hasText: 'Early Access – Still Under Construction' })).toHaveCount(1);
+  });
+
+  test('the tools open from their cards', async ({ page }) => {
+    await page.goto('./');
+    await page.getByRole('link', { name: /Assembly simulator/ }).click();
     await expect(page.locator('h1')).toHaveText('Assembly simulator');
   });
 
-  test('every page has a See more link in the header', async ({ page }) => {
-    for (const path of ['./', 'assembly/', 'projects/']) {
-      await page.goto(path);
-      const link = page.locator('.site-header').getByRole('link', { name: 'See more' });
-      await expect(link).toBeVisible();
-    }
-    await page.goto('./');
-    await page.locator('.site-header').getByRole('link', { name: 'See more' }).click();
-    await expect(page.locator('h1')).toHaveText('Other projects');
-  });
-});
-
-test.describe('see more page', () => {
-  test('lists all 9 projects, each opening in a new tab', async ({ page }) => {
+  test('the old See more address goes to the home page', async ({ page }) => {
     await page.goto('projects/');
-    const links = page.locator('#project-list a');
-    await expect(links).toHaveCount(9);
-    for (const link of await links.all()) {
-      await expect(link).toHaveAttribute('target', '_blank');
-      await expect(link).toHaveAttribute('href', /^https:\/\//);
-    }
-    for (const name of ['Papers', 'Libraries', 'Games and interactive projects']) {
-      await expect(page.getByRole('heading', { name })).toBeVisible();
-    }
-    await expect(page.locator('.tag', { hasText: 'Early Access – Still Under Construction' })).toHaveCount(1);
-    await expect(page.getByRole('img', { name: /Apex Ring/ })).toBeVisible();
-    await expect(page.getByText('They have not been peer reviewed.')).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('h1')).toHaveText('Groundwork');
+    await expect(page.locator('.area.featured')).toBeVisible();
   });
 });
 

@@ -35,7 +35,7 @@ npm test
 | `index.html` | Home page |
 | `assembly/` | The assembly simulator. `aqa.js` is the parser and CPU (no page code), `examples.js` the example programs, `app.js` the page. |
 | `logic/` | The logic gates tool. `logic.js` is the circuit model, evaluation and expressions (no page code), `shapes.js` the gate symbols, `examples.js` the example circuits, `app.js` the page. |
-| `projects/` | The "See more" page. Edit `projects.js` to change the list. |
+| `index.html`, `assets/home.css` | The home page: every project in pastel areas. `projects/` only redirects there. |
 | `assets/style.css`, `assets/settings-menu.js` | Shared styles and the settings menu used by every tool. See `STYLE.md`. |
 | `tests/` | Unit tests (`unit/`) and browser tests (`ui/`). |
 

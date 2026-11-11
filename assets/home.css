@@ -1,0 +1,126 @@
+/* Home page: pastel areas with rounded borders, which can sit inside each other.
+   Shared colours and type come from style.css. */
+
+:root {
+  --area-radius: 14px;
+
+  --featured-bg: #fdf7e4;  --featured-line: #e3c975;  --featured-star: #c39a1d;
+  --academic-bg: #eaf0fa;  --academic-line: #c8d5ee;
+  --research-bg: #f1ebf9;  --research-line: #d9cbee;
+  --computing-bg: #e5f4ee; --computing-line: #bfe1d3;
+  --libraries-bg: #fcefe3; --libraries-line: #efd3b9;
+  --games-bg: #fbe9ee;     --games-line: #efc9d4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --featured-bg: #2a2617;  --featured-line: #5c4e22;  --featured-star: #dcbc52;
+    --academic-bg: #1c2231;  --academic-line: #34415e;
+    --research-bg: #251f31;  --research-line: #443859;
+    --computing-bg: #1a2a25; --computing-line: #2f4d42;
+    --libraries-bg: #2c231b; --libraries-line: #514030;
+    --games-bg: #2d1f25;     --games-line: #533a45;
+  }
+}
+
+.home h1 { margin-bottom: var(--space-1); }
+.home-intro { color: var(--text-muted); margin-bottom: var(--space-5); }
+
+.area {
+  --bg: var(--surface);
+  --line: var(--border);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--area-radius);
+  padding: var(--space-4);
+  margin: 0 0 var(--space-5);
+  min-width: 0;
+}
+.area .area { margin: 0; border-radius: calc(var(--area-radius) - 4px); }
+
+.area-title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+h2.area-title { font-size: var(--text-lg); }
+
+.area-note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.area-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+main > .area-grid { gap: var(--space-5); margin-bottom: var(--space-5); }
+main > .area-grid > .area { margin: 0; }
+
+.featured   { --bg: var(--featured-bg);  --line: var(--featured-line); border-width: 2px; }
+.academic   { --bg: var(--academic-bg);  --line: var(--academic-line); }
+.research   { --bg: var(--research-bg);  --line: var(--research-line); }
+.computing  { --bg: var(--computing-bg); --line: var(--computing-line); }
+.libraries  { --bg: var(--libraries-bg); --line: var(--libraries-line); }
+.games      { --bg: var(--games-bg);     --line: var(--games-line); }
+
+/* Featured: a little sparkle either side of the title, and room for what goes in later. */
+.featured .area-title { display: flex; align-items: center; gap: var(--space-2); }
+.sparkle { width: 15px; height: 15px; fill: var(--featured-star); flex: none; }
+.sparkle.small { width: 10px; height: 10px; align-self: flex-start; }
+.featured-body { min-height: 5rem; }
+
+/* Cards: the whole rectangle is the link. */
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 120ms, transform 120ms;
+}
+.card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.card:hover .card-title { color: var(--accent); }
+
+.card-title { font-weight: 600; line-height: 1.4; }
+.card-text { line-height: 1.5; }
+.card-meta { font-size: var(--text-sm); color: var(--text-muted); }
+
+.card.has-image img {
+  display: block;
+  width: calc(100% + 2 * var(--space-4));
+  max-width: none;
+  height: auto;
+  aspect-ratio: 840 / 667;
+  object-fit: cover;
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+  .card:hover { transform: none; }
+}
+
+@media (max-width: 48rem) {
+  .area-grid { grid-template-columns: 1fr; }
+  .area { padding: var(--space-3); }
+}
