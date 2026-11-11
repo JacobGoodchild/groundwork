@@ -10,6 +10,7 @@
   --computing-bg: #e5f4ee; --computing-line: #bfe1d3;
   --libraries-bg: #fcefe3; --libraries-line: #efd3b9;
   --games-bg: #fbe9ee;     --games-line: #efc9d4;
+  --database-bg: #e3f3f7;  --database-line: #b9dde7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,6 +21,7 @@
     --computing-bg: #1a2a25; --computing-line: #2f4d42;
     --libraries-bg: #2c231b; --libraries-line: #514030;
     --games-bg: #2d1f25;     --games-line: #533a45;
+    --database-bg: #18282d;  --database-line: #2d4a53;
   }
 }
 
@@ -67,6 +69,7 @@ main > .area-grid > .area { margin: 0; }
 .computing  { --bg: var(--computing-bg); --line: var(--computing-line); }
 .libraries  { --bg: var(--libraries-bg); --line: var(--libraries-line); }
 .games      { --bg: var(--games-bg);     --line: var(--games-line); }
+.database   { --bg: var(--database-bg);  --line: var(--database-line); }
 
 /* Featured: a little sparkle either side of the title, and room for what goes in later. */
 .featured .area-title { display: flex; align-items: center; gap: var(--space-2); }

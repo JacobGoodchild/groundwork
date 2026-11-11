@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Slides · Database</title>
+  <meta name="description" content="Lecture slides on deep generative models and diffusion probabilistic models.">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="../database.css">
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script type="module" src="slides.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="../../">Groundwork</a>
+  </header>
+
+  <main id="main" class="database">
+    <p class="crumbs"><a href="../">Database</a> / Slides</p>
+    <div class="deck-bar">
+      <h1>Slides</h1>
+      <button class="button primary" id="present" type="button">Slideshow</button>
+    </div>
+
+    <div class="deck" id="deck">
+
+      <!-- 1 -->
+      <section class="slide" aria-label="Slide 1: Typical Examples – Variational Auto-Encoder (VAE)"><div class="slide-inner serif-body">
+        <h2 style="font-size:1.85em">Typical Examples – Variational Auto-Encoder (VAE)</h2>
+        <ul class="diamond serif">
+          <li>Variational Bayesian inference for probabilistic models with neural networks (Kingma &amp; Welling, ICLR 2013):
+            <div class="md">q(z \mid x;\phi) \approx p(z \mid x;\theta)</div>
+          </li>
+        </ul>
+        <svg viewBox="0 0 640 170" style="width:62%;margin:0 auto" aria-label="Graphical model: an inference path from x to z, and a generation path from z to x" role="img" font-family="Times New Roman, Times, serif">
+          <defs>
+            <marker id="vae-k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#222"/></marker>
+            <marker id="vae-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#d0503a"/></marker>
+          </defs>
+          <text x="120" y="80" font-size="22" font-style="italic" fill="#222">q(z<tspan font-style="normal">|</tspan>x; ϕ)</text>
+          <line x1="198" y1="122" x2="300" y2="40" stroke="#d0503a" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#vae-r)"/>
+          <circle cx="183" cy="138" r="24" fill="#b8c7a6" stroke="#444" stroke-width="1.6"/>
+          <text x="183" y="145" font-size="20" text-anchor="middle">x</text>
+          <circle cx="322" cy="30" r="24" fill="#fff" stroke="#444" stroke-width="1.6"/>
+          <text x="322" y="37" font-size="20" text-anchor="middle">z</text>
+          <line x1="322" y1="54" x2="322" y2="112" stroke="#222" stroke-width="1.6" marker-end="url(#vae-k)"/>
+          <circle cx="322" cy="138" r="24" fill="#b8c7a6" stroke="#444" stroke-width="1.6"/>
+          <text x="322" y="145" font-size="20" text-anchor="middle">x</text>
+          <line x1="440" y1="92" x2="478" y2="92" stroke="#222" stroke-width="2" marker-end="url(#vae-k)"/>
+          <text x="492" y="99" font-size="21">generation path</text>
+          <line x1="440" y1="124" x2="478" y2="124" stroke="#d0503a" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#vae-r)"/>
+          <text x="492" y="131" font-size="21">inference path</text>
+        </svg>
+        <ul class="square serif" style="margin-top:1em">
+          <li>All the parameters are learned jointly via SGD with variance reduction</li>
+          <li>Many improvements/extensions to VAEs, including our work on unbiased estimators: SUMO (Luo et al., ICLR 2020), implicit variational inference (Shi et al., ICML 2018, Zhou et al., ICML 2020) …</li>
+        </ul>
+      </div></section>
+
+      <!-- 2 -->
+      <section class="slide" aria-label="Slide 2: Basic of Auto-Regressive DGMs"><div class="slide-inner">
+        <h2>Basic of Auto-Regressive DGMs</h2>
+        <ul class="diamond serif">
+          <li>Consider a sequence data <span class="m">\quad \mathbf{x} = (x_1, x_2, \ldots, x_d)</span></li>
+          <li>The joint distribution is factorized as
+            <div class="md">p(\mathbf{x}) = \prod_{i=1}^{d} p(x_i \mid x_1, x_2, \ldots, x_{i-1}) = \prod_{i=1}^{d} p(x_i \mid \mathbf{x}_{&lt;i})</div>
+            <ul class="square"><li>where <span class="m">\mathbf{x}_{&lt;i} = (x_1, x_2, \ldots, x_{i-1})^\top</span></li></ul>
+          </li>
+          <li>An auto-regression structure</li>
+        </ul>
+        <svg viewBox="0 0 560 150" style="width:52%;margin:0 auto" role="img" aria-label="Four nodes X1 to X4, each with an arrow to every later node" font-family="Times New Roman, Times, serif">
+          <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#222"/></marker></defs>
+          <g fill="none" stroke="#222" stroke-width="1.5">
+            <path d="M70 102 Q140 50 196 98" marker-end="url(#ar)"/>
+            <path d="M74 100 Q190 20 318 96" marker-end="url(#ar)"/>
+            <path d="M76 98 Q260 -10 452 96" marker-end="url(#ar)"/>
+            <path d="M226 100 Q280 52 334 98" marker-end="url(#ar)"/>
+            <path d="M230 98 Q340 30 456 98" marker-end="url(#ar)"/>
+            <path d="M362 102 Q412 58 462 100" marker-end="url(#ar)"/>
+          </g>
+          <g fill="#e2f6f8" stroke="#222" stroke-width="1.6">
+            <circle cx="60" cy="122" r="28"/><circle cx="210" cy="122" r="28"/><circle cx="350" cy="122" r="28"/><circle cx="480" cy="122" r="28"/>
+          </g>
+          <g font-size="24" font-style="italic" text-anchor="middle">
+            <text x="58" y="130">X<tspan font-size="16" dy="6" font-style="normal">1</tspan></text>
+            <text x="208" y="130">X<tspan font-size="16" dy="6" font-style="normal">2</tspan></text>
+            <text x="348" y="130">X<tspan font-size="16" dy="6" font-style="normal">3</tspan></text>
+            <text x="478" y="130">X<tspan font-size="16" dy="6" font-style="normal">4</tspan></text>
+          </g>
+        </svg>
+      </div></section>
+
+      <!-- 3 -->
+      <section class="slide" aria-label="Slide 3: Diffusion Probabilistic Models (DPMs)"><div class="slide-inner">
+        <h2>Diffusion Probabilistic Models (DPMs)</h2>
+        <ul>
+          <li>Diffusion process gradually injects noise to data</li>
+          <li>Described by a Markov chain: <span class="m">q(x_0,\ldots,x_N) = q(x_0)\,q(x_1 \mid x_0)\cdots q(x_N \mid x_{N-1})</span></li>
+        </ul>
+        <p style="text-align:right;margin:0.4em 0 0.2em;font-size:0.85em">Transition of diffusion: <span class="m">q(x_n \mid x_{n-1}) = \N(\sqrt{\alpha_n}\,x_{n-1}, \beta_n I) \qquad \alpha_n = 1-\beta_n</span></p>
+        <svg viewBox="0 0 1000 80" style="width:100%" role="img" aria-label="A chain of states x0, x1, x2 through to xN, which is approximately standard normal" font-family="Cambria Math, Times New Roman, serif">
+          <defs><marker id="dp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1f8fe0"/></marker></defs>
+          <g stroke="#1f8fe0" stroke-width="2.4" fill="none">
+            <line x1="104" y1="40" x2="134" y2="40" marker-end="url(#dp)"/>
+            <line x1="224" y1="40" x2="254" y2="40" marker-end="url(#dp)"/>
+            <line x1="344" y1="40" x2="590" y2="40" marker-end="url(#dp)"/>
+            <line x1="640" y1="40" x2="800" y2="40" marker-end="url(#dp)"/>
+          </g>
+          <g fill="#1f8fe0"><circle cx="60" cy="40" r="40"/><circle cx="180" cy="40" r="40"/><circle cx="300" cy="40" r="40"/><circle cx="846" cy="40" r="40"/></g>
+          <g fill="#fff" font-size="26" font-style="italic" text-anchor="middle">
+            <text x="58" y="48">x<tspan font-size="17" dy="6" font-style="normal">0</tspan></text>
+            <text x="178" y="48">x<tspan font-size="17" dy="6" font-style="normal">1</tspan></text>
+            <text x="298" y="48">x<tspan font-size="17" dy="6" font-style="normal">2</tspan></text>
+            <text x="842" y="48">x<tspan font-size="17" dy="6" font-style="italic">N</tspan></text>
+          </g>
+          <text x="615" y="48" font-size="28" text-anchor="middle" fill="#222">…</text>
+          <text x="900" y="49" font-size="24" fill="#222">≈ <tspan font-style="italic">N</tspan>(0, <tspan font-style="italic">I</tspan>)</text>
+        </svg>
+        <img src="../images/diffusion-strip.jpg" alt="A photo of a dog with more and more noise added, until it is pure noise" width="928" height="116" style="width:88%;margin:0.6em 0 0.3em">
+        <p class="center" style="font-size:0.9em">Diffusion process: <span class="m">q(x_0,\ldots,x_N) = q(x_0)\,q(x_1 \mid x_0)\cdots q(x_N \mid x_{N-1})</span></p>
+        <p style="text-align:right;font-size:0.72em;margin:0.2em 0">Demo Images from <i>Song et al., ICLR 2021</i></p>
+        <p class="cite" style="text-align:right;margin:0">[Ho et al. Denoising diffusion probabilistic models (DDPM), NeurIPS 2020<br>Song et al. Score-based generative modeling through stochastic differential equations, ICLR 2021]</p>
+        <span class="page">19</span>
+      </div></section>
+
+      <!-- 4 -->
+      <section class="slide" aria-label="Slide 4: Two Types of Diffusion Probabilistic Models"><div class="slide-inner">
+        <h2>Two Types of Diffusion Probabilistic Models</h2>
+        <p class="sub">Diffusion SDEs and Diffusion ODEs (Song et al., 2021)</p>
+        <ul style="margin-top:0.8em"><li><b>Diffusion SDEs:</b></li></ul>
+        <div class="md">\mathrm{d}\bm{x}_t = \left[f(t)\bm{x}_t + \frac{g^2(t)}{\sigma_t}\bm{\epsilon}_\theta(\bm{x}_t,t)\right]\mathrm{d}t + g(t)\,\mathrm{d}\bar{\bm{w}}_t, \quad \bm{x}_T \sim \N(\bm{0}, \tilde\sigma^2\bm{I}).</div>
+        <p>Sampling by <b>DDPM</b> is equivalent to a <b>first-order</b> discretization of diffusion SDEs (Song et al., 2021).</p>
+        <ul style="margin-top:1.4em"><li><b>Diffusion ODEs:</b></li></ul>
+        <div class="md">\frac{\mathrm{d}\bm{x}_t}{\mathrm{d}t} = f(t)\bm{x}_t + \frac{g^2(t)}{2\sigma_t}\bm{\epsilon}_\theta(\bm{x}_t,t), \quad \bm{x}_T \sim \N(\bm{0}, \tilde\sigma^2\bm{I})</div>
+        <p>Sampling by <b>DDIM</b> is equivalent to a <b>first-order</b> discretization of diffusion ODEs (Salimans et al., 2022).</p>
+        <span class="page">25</span>
+      </div></section>
+
+      <!-- 5 -->
+      <section class="slide" aria-label="Slide 5: Diffusion Probabilistic Models (DPMs), training by the ELBO"><div class="slide-inner">
+        <h2>Diffusion Probabilistic Models (DPMs)</h2>
+        <ul>
+          <li>We hope <span class="m">q(x_0,\ldots,x_N) \approx {\color{#c0392b}p(x_0,\ldots,x_N)}</span> <span class="m" style="margin-left:2em;font-size:0.85em">\color{#c0392b} p(x_{n-1} \mid x_n) = N(\mu_n(x_n), \sigma_n^2 I)</span></li>
+          <li>Achieved by minimizing their KL divergence (i.e., maximizing the ELBO)</li>
+        </ul>
+        <div class="eq-row" style="margin-top:1.6em;font-size:0.74em">
+          <span class="lab"><span>min KL</span><span class="m">\min\limits_{\mu_n(\cdot),\,\sigma_n^2} KL(q(x_{0:N}) \,\|\, p(x_{0:N}))</span></span>
+          <span class="m">\Leftrightarrow</span>
+          <span class="lab"><span>max ELBO</span><span class="m">\max\limits_{\mu_n(\cdot),\,\sigma_n^2} \E_q \log \dfrac{p(x_{0:N})}{q(x_{1:N} \mid x_0)}</span></span>
+          <span class="m">\Rightarrow</span>
+          <span class="lab" id="score-part"><span>Reweighted ELBO (Score matching)</span><span class="m">\min\limits_{s_n(\cdot)} \E_n \bar\beta_n \E_{q_n(x_n)} \|s_n(x_n) - \nabla \log q_n(x_n)\|^2</span></span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;margin-right:6%">
+          <svg class="down-arrow" viewBox="0 0 20 60" style="transform:rotate(180deg);margin:0.2em 9em 0.2em 0" aria-hidden="true"><line x1="10" y1="0" x2="10" y2="48" stroke="#222" stroke-width="2"/><path d="M3 46 L10 60 L17 46z" fill="#222"/></svg>
+          <div class="dark-note">DDPM only optimizes the model mean<br>Use handcrafted model variance, e.g., <span class="m">\sigma_n^2 = \beta_n</span></div>
+          <b class="red" style="margin-top:0.6em">Suboptimal!</b>
+        </div>
+        <p style="margin-top:auto">Parameterization of <span class="m">\mu_n(\cdot)</span>: <span class="m">\mu_n(x_n) = \frac{1}{\sqrt{\alpha_n}}\left(x_n + \beta_n s_n(x_n)\right)</span></p>
+        <span class="page">31</span>
+      </div></section>
+
+      <!-- 6 -->
+      <section class="slide" aria-label="Slide 6: Extensions of Analytical-DPMs"><div class="slide-inner">
+        <h2>Extensions of Analytical-DPMs</h2>
+        <ul>
+          <li>We hope <span class="m">q(x_0,\ldots,x_N) \approx {\color{#c0392b}p(x_0,\ldots,x_N)}</span> <span class="m" style="margin-left:2em;font-size:0.85em">\color{#c0392b} p(x_{n-1} \mid x_n) = N(\mu_n(x_n), \Sigma_n(x_n))</span></li>
+          <li>Achieved by minimizing their KL divergence (i.e., maximizing the ELBO)</li>
+        </ul>
+        <div class="eq-row" style="margin:0.6em 0 0.8em;font-size:0.85em">
+          <span class="lab"><span>min KL</span><span class="m">\min\limits_{\mu_n(\cdot),\,\Sigma_n(\cdot)} KL(q(x_{0:N}) \,\|\, p(x_{0:N}))</span></span>
+          <span class="m">\Leftrightarrow</span>
+          <span class="lab"><span>max ELBO</span><span class="m">\max\limits_{\mu_n(\cdot),\,\Sigma_n(\cdot)} \E_q \log \dfrac{p(x_{0:N})}{q(x_{1:N} \mid x_0)}</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 2.6fr 1.3fr;gap:1.2em;align-items:center">
+          <div style="font-size:0.85em">Noise prediction network:<br><span class="m">\hat\epsilon_n(x_n) \approx \mathbf{E}_{q(x_0 \mid x_n)}[\epsilon_n]</span></div>
+          <div class="green-box">
+            <p style="margin:0">(<b>Analytic-DPM</b>) Suppose <span class="m">\Sigma_n(x_n) = \sigma_n^2</span>. The optimal solution is</p>
+            <div class="md">\mu_n^*(x_n) = \frac{1}{\sqrt{\alpha_n}}\left(x_n - \frac{\beta_n}{\sqrt{\bar\beta_n}}\mathbf{E}_{q(x_0 \mid x_n)}[\epsilon_n]\right),</div>
+            <div class="md">\sigma_n^{*2} = \frac{\beta_n}{\alpha_n}\left(1 - \frac{\beta_n}{\bar\beta_n}\E_{q_n(x_n)}\frac{\left\|\mathbf{E}_{q(x_0 \mid x_n)}[\epsilon_n]\right\|^2}{d}\right).</div>
+          </div>
+          <div class="callout"><ul><li>Isotropic variance is simple</li><li>Irrelevant to state <span class="m">x_n</span></li><li>Assume the mean is optimal</li></ul></div>
+        </div>
+        <span class="page">42</span>
+      </div></section>
+
+      <!-- 7 -->
+      <section class="slide" aria-label="Slide 7: Observation 2: Simplifying by log-SNR"><div class="slide-inner">
+        <h2>Observation 2: &nbsp;Simplifying by log-SNR</h2>
+        <p class="sub">A simple exponentially weighted integral</p>
+        <div style="display:grid;grid-template-columns:1fr 0.7cqw 2fr;gap:2.4cqw;flex:1;font-size:0.9em">
+          <div>
+            <div class="m" style="display:block;margin:0.6em 0 0.2em;font-size:0.8em;white-space:nowrap">q_{0t}(\bm{x}_t \mid \bm{x}_0) = \N(\bm{x}_t \mid \bx{\alpha(t)}\bm{x}_0, \bx{\sigma^2(t)}\bm{I}),</div>
+            <svg viewBox="0 0 20 40" style="width:1.4cqw;margin:0 0 0 8em" aria-hidden="true"><line x1="10" y1="0" x2="10" y2="30" stroke="#1f8fe0" stroke-width="4"/><path d="M3 28 L10 40 L17 28z" fill="#1f8fe0"/></svg>
+            <p class="mono" style="white-space:nowrap;font-size:0.8em"><i>signal-to-noise-ratio</i> (<span class="m">\alpha_t^2/\sigma_t^2</span>)</p>
+            <p class="mono" style="margin:0.8em 0 0">Define <span class="m">\lambda_t := \log(\alpha_t/\sigma_t)</span><br>(half of log-SNR)</p>
+            <p class="mono" style="margin-top:0.8em">We can prove that:</p>
+            <div class="blue-frame" style="display:inline-block;margin-left:2em">
+              <div class="m" style="display:block">f(t) = \frac{\mathrm{d}\log\alpha_t}{\mathrm{d}t}</div>
+              <div class="m" style="display:block;margin-top:0.5em">g^2(t) = -2\sigma_t^2\frac{\mathrm{d}\lambda_t}{\mathrm{d}t}</div>
+            </div>
+          </div>
+          <div style="background:linear-gradient(#5fb8f0,#0a6fc2);border-radius:0.3cqw"></div>
+          <div style="display:flex;flex-direction:column">
+            <div class="md">\bm{x}_t = e^{\int_s^t f(\tau)\mathrm{d}\tau}\bm{x}_s + \int_s^t \left(e^{\int_\tau^t f(r)\mathrm{d}r}\frac{g^2(\tau)}{2\sigma_\tau}\bm{\epsilon}_\theta(\bm{x}_\tau,\tau)\right)\mathrm{d}\tau</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:2em">
+              <svg viewBox="0 0 30 90" style="width:2.2cqw" aria-hidden="true"><rect x="9" y="0" width="12" height="70" fill="#1f8fe0"/><path d="M0 66 L15 90 L30 66z" fill="#1f8fe0"/></svg>
+              <p class="mono center" style="margin:0">“<i>change-of-variable</i>”<br>formula<br>(from <span class="m">t</span> to <span class="m">\lambda</span>)</p>
+            </div>
+            <div class="blue-frame" style="margin-top:0.6em;padding:0.6em 0.4em">
+              <div class="md" style="margin:0">\bm{x}_t = \underset{\substack{\text{\texttt{Linear term}}\\ \color{#c0392b}\text{\texttt{Exactly Computed}}}}{\bx{\dfrac{\alpha_t}{\alpha_s}\bm{x}_s}} - \alpha_t \underset{\substack{\text{\texttt{Nonlinear term}}\\ \color{#c0392b}\text{\texttt{Exponentially weighted integral}}}}{\bx{\int_{\lambda_s}^{\lambda_t} e^{-\lambda}\hat{\bm{\epsilon}}_\theta(\hat{\bm{x}}_\lambda,\lambda)\mathrm{d}\lambda}}</div>
+            </div>
+          </div>
+        </div>
+        <span class="footer-name">DPM-Solver</span><span class="page">54</span>
+      </div></section>
+
+      <!-- 8 -->
+      <section class="slide" aria-label="Slide 8: Designing High-Order Solvers for Diffusion ODEs"><div class="slide-inner">
+        <h2>Designing High-Order Solvers for Diffusion ODEs</h2>
+        <p class="sub">Foundation of DPM-Solver</p>
+        <p class="mono" style="margin-top:0.6em">Based on our analysis, given <span class="m">\tilde x_{t_{i-1}}</span> at time <span class="m">t_{i-1}</span>, the exact solution at time <span class="m">t_i</span> is:</p>
+        <div class="md">\bm{x}_{t_{i-1}\to t_i} = \frac{\alpha_{t_i}}{\alpha_{t_{i-1}}}\tilde{\bm{x}}_{t_{i-1}} - \alpha_{t_i}\int_{\lambda_{t_{i-1}}}^{\lambda_{t_i}} e^{-\lambda}\bx{\hat{\bm{\epsilon}}_\theta(\hat{\bm{x}}_\lambda,\lambda)}\mathrm{d}\lambda</div>
+        <div style="display:grid;grid-template-columns:0.6fr auto 1.6fr;align-items:center;gap:1em">
+          <span></span>
+          <svg viewBox="0 0 30 90" style="width:2.2cqw" aria-hidden="true"><rect x="9" y="0" width="12" height="70" fill="#1f8fe0"/><path d="M0 66 L15 90 L30 66z" fill="#1f8fe0"/></svg>
+          <div style="font-size:0.72em"><p class="mono" style="margin:0">Taylor expansion:</p>
+            <div class="m" style="display:block;white-space:nowrap">\hat{\bm{\epsilon}}_\theta(\hat{\bm{x}}_\lambda,\lambda) = \sum_{n=0}^{k-1}\frac{(\lambda-\lambda_{t_{i-1}})^n}{n!}\hat{\bm{\epsilon}}_\theta^{(n)}(\hat{\bm{x}}_{\lambda_{t_{i-1}}},\lambda_{t_{i-1}}) + \mathcal{O}((\lambda-\lambda_{t_{i-1}})^k)</div>
+          </div>
+        </div>
+        <div class="md">\bm{x}_{t_{i-1}\to t_i} = \frac{\alpha_{t_i}}{\alpha_{t_{i-1}}}\tilde{\bm{x}}_{t_{i-1}} - \alpha_{t_i}\sum_{n=0}^{k-1} \underset{\text{\texttt{Derivatives}}}{\bx{\hat{\bm{\epsilon}}_\theta^{(n)}(\hat{\bm{x}}_{\lambda_{t_{i-1}}},\lambda_{t_{i-1}})}}\;\underset{\text{\texttt{Coefficients}}}{\bx{\int_{\lambda_{t_{i-1}}}^{\lambda_{t_i}} e^{-\lambda}\frac{(\lambda-\lambda_{t_{i-1}})^n}{n!}\mathrm{d}\lambda}} + \mathcal{O}(h_i^{k+1})</div>
+        <span class="footer-name">DPM-Solver</span><span class="page">56</span>
+      </div></section>
+
+      <!-- 9 -->
+      <section class="slide" aria-label="Slide 9: DPM-Solver in Diffusers Library"><div class="slide-inner">
+        <h2>DPM-Solver in Diffusers Library</h2>
+        <p class="sub">Very easy to use in stable-diffusion</p>
+<pre class="code"><code><span><span class="k">from</span> diffusers <span class="k">import</span> StableDiffusionPipeline</span>
+<span><span class="hl"><span class="k">from</span> diffusers <span class="k">import</span> DPMSolverMultistepScheduler</span></span>
+<span></span>
+<span></span>
+<span></span>
+<span>steps <span class="o">=</span> <span class="n">10</span></span>
+<span></span>
+<span><span class="hl">scheduler <span class="o">=</span> DPMSolverMultistepScheduler.<span class="f">from_config</span>(<span class="s">"./stable-diffusion-v1-5"</span>, <span class="p">subfolder</span><span class="o">=</span><span class="s">"scheduler"</span>)</span></span>
+<span></span>
+<span></span>
+<span>pipe <span class="o">=</span> StableDiffusionPipeline.<span class="f">from_pretrained</span>(</span>
+<span>    <span class="s">"./stable-diffusion-v1-5"</span>,</span>
+<span>    <span class="hl"><span class="p">scheduler</span><span class="o">=</span>scheduler,</span></span>
+<span>)</span>
+<span>pipe <span class="o">=</span> pipe.<span class="f">to</span>(<span class="s">"cuda"</span>)</span>
+<span></span>
+<span>prompt <span class="o">=</span> <span class="s">"a photo of an astronaut riding a horse on mars"</span></span>
+<span></span>
+<span>images <span class="o">=</span> <span class="f">pipe</span>(prompt, <span class="p">num_inference_steps</span><span class="o">=</span>steps, <span class="p">num_images_per_prompt</span><span class="o">=</span><span class="n">5</span>).images</span>
+<span></span>
+<span><span class="k">for</span> i, image <span class="k">in</span> <span class="f">enumerate</span>(images):</span>
+<span>    image.<span class="f">save</span>(<span class="s">f"dpm_{steps}_{i}.png"</span>)</span>
+<span></span></code></pre>
+        <span class="footer-name">DPM-Solver</span><span class="page">78</span>
+      </div></section>
+
+      <!-- 10 -->
+      <section class="slide" aria-label="Slide 10: Variational Score Distillation (VSD)"><div class="slide-inner">
+        <h2 class="sans">Variational Score Distillation (VSD)</h2>
+        <div style="display:grid;grid-template-columns:1fr 24%;gap:1.5em;align-items:start;font-size:0.88em;margin-bottom:0.4em">
+          <div>
+            <p class="sub" style="margin:-0.5em 0 0.3em">Simulate Wasserstein gradient flow by particles</p>
+            <ul>
+              <li>Generally, it is difficult and computationally expensive to train <span class="m">\mu(\theta \mid y)</span> by another parameterized generative model.</li>
+              <li>Instead, we use several <span class="m">\{\theta^{(i)}\}_{i=1}^n</span> as the samples from <span class="m">\mu</span> to “represent” the distribution <span class="m">\mu</span>.</li>
+            </ul>
+          </div>
+          <img src="../images/vsd-particles.svg" alt="Particles on a contour plot of a two-peaked distribution, each with an arrow pointing towards higher density" width="360" height="250">
+        </div>
+        <div class="theorem">
+          <p style="margin:0"><b>Theorem 2.</b> (Wasserstein gradient flow of VSD) Starting from an initial distribution <span class="m">\mu_0</span>, denote the Wasserstein gradient flow minimizing Eq. (1) in the distribution (function) space at each time <span class="m">\tau \ge 0</span> as <span class="m">\{\mu_\tau\}_{\tau\ge0}</span> with <span class="m">\mu_\infty = \mu^*</span>. Then we can sample <span class="m">\theta_\tau</span> from <span class="m">\mu_\tau</span> by firstly sampling <span class="m">\theta_0 \sim \mu_0(\theta_0 \mid y)</span> and then simulating the following ODE:</p>
+          <div class="md">\frac{\mathrm{d}\theta_\tau}{\mathrm{d}\tau} = -\mathbb{E}_{t,\epsilon,c}\left[\omega(t)\Big(\underbrace{-\sigma_t\nabla_{\bm{x}_t}\log p_t(\bm{x}_t \mid y)}_{\textit{score of noisy real images}} - \underbrace{\left(-\sigma_t\nabla_{\bm{x}_t}\log q_t^{\mu_\tau}(\bm{x}_t \mid c, y)\right)}_{\textit{score of noisy rendered images}}\Big)\frac{\partial \bm{g}(\theta_\tau, c)}{\partial\theta_\tau}\right]</div>
+          <p style="margin:0">where <span class="m">q_t^{\mu_\tau}</span> is the corresponding noisy distribution at the diffusion time <span class="m">t</span> w.r.t. <span class="m">\mu_\tau</span> at the ODE time <span class="m">\tau</span>.</p>
+        </div>
+        <span class="footer-name" style="font-family:inherit;bottom:0.5cqw">ProlificDreamer</span><span class="page">119</span>
+      </div></section>
+
+      <!-- 11 -->
+      <section class="slide" aria-label="Slide 11: Equivariant Energy-guided SDE (EEGSDE)"><div class="slide-inner">
+        <h2 class="sans" style="margin-bottom:0.15em">Equivariant Energy-guided SDE <span style="font-family:'Times New Roman',Times,serif;font-weight:700;color:var(--red)">(EEGSDE)</span></h2>
+        <p class="cite" style="margin:0 0 0.4em">Bao &amp; Zhao et al., ICLR 2023</p>
+        <img style="width:80%;margin:0 auto" src="../images/eegsde.svg" alt="Molecule generation guided by an invariant energy: the energy E gives the same value for a molecule and its rotation, and is conditioned on a target structure fingerprint and a quantum property; it guides each step from noise to a finished molecule" width="1000" height="400">
+        <div style="display:flex;align-items:center;justify-content:center;gap:0.3em;font-size:0.62em;margin-top:0.3em;white-space:nowrap">
+          <span style="border:0.15cqw solid #2a7a2a;background:#8ee08a;border-radius:50%;padding:0.25em 0.35em" class="m">z_T</span>
+          <span>—</span>
+          <span class="m">\mathrm{d}\bm{z} = \Big[f(t)\bm{z} + g(t)^2\Big(\frac{1}{\sqrt{\bar\beta_{t|0}}}\bm{\epsilon}_\theta(\bm{z},t) + \underbrace{\big(\nabla_{\bm{x}}E(\bm{z},c,t) - \overline{\nabla_{\bm{x}}E(\bm{z},c,t)},\ \nabla_{\bm{h}}E(\bm{z},c,t)\big)}_{\textbf{Equivariant Energy Guidance}}\Big)\Big]\mathrm{d}t + g(t)\,\mathrm{d}(\tilde{\bm{w}}_{\bm{x}}, \tilde{\bm{w}}_{\bm{h}})</span>
+          <span>→</span>
+          <span style="border:0.15cqw solid #2a7a2a;background:#8ee08a;border-radius:50%;padding:0.25em 0.35em" class="m">z_0</span>
+        </div>
+      </div></section>
+
+      <!-- 12 -->
+      <section class="slide" aria-label="Slide 12: Summary"><div class="slide-inner">
+        <h2>Summary</h2>
+        <ul style="margin-top:0.6em">
+          <li>Diffusion probabilistic models are powerful in image synthesis, image-2-image translation, crossmodal inference, reinforcement learning, etc</li>
+          <li>We propose Analytic-DPM that proves analytical solutions of the mean and variance, with <b class="red">20 to 80</b> × speed up</li>
+          <li>We propose DPM-Solver based on a highly simplified formulation of the exact solutions of diffusion ODEs; it can generate high-quality samples in around <b class="red">10</b> steps and almost converge in <b class="red">20</b> steps.</li>
+          <li>We propose a unified diffusion model for crossmodal inference, and an energy-guided SDE for image-2-image translation</li>
+          <li style="margin-top:1.4em">Check out <a href="https://ml.cs.tsinghua.edu.cn/diffusion/RelatedWork" target="_blank" rel="noopener">https://ml.cs.tsinghua.edu.cn/diffusion/RelatedWork</a> for other progress on molecular design, RL, backbone architecture, etc</li>
+        </ul>
+        <span class="footer-name">DPM-Solver</span><span class="page">154</span>
+      </div></section>
+
+    </div>
+  </main>
+
+  <div class="show" id="show" hidden role="dialog" aria-modal="true" aria-label="Slideshow">
+    <div class="show-stage" id="stage"></div>
+    <div class="show-controls">
+      <button type="button" id="prev" aria-label="Previous slide">&larr;</button>
+      <span id="count" aria-live="polite"></span>
+      <button type="button" id="next" aria-label="Next slide">&rarr;</button>
+      <button type="button" id="close">Close</button>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>Slides rebuilt from photos of the lecture. Press Slideshow to present them one at a time.</p>
+  </footer>
+</body>
+</html>

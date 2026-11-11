@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data · Database</title>
+  <meta name="description" content="The formulas covered in the diffusion model slides.">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="stylesheet" href="../../assets/vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="../database.css">
+  <script src="../../assets/vendor/katex/katex.min.js"></script>
+  <script type="module">import { typeset } from '../math.js'; typeset();</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="site-name" href="../../">Groundwork</a>
+  </header>
+
+  <main id="main" class="database">
+    <p class="crumbs"><a href="../">Database</a> / Data</p>
+    <h1>Data</h1>
+
+    <div class="formulas">
+      <section class="formula-group">
+        <h2>Variational Auto-Encoder</h2>
+        <div class="formula md">q(z \mid x;\phi) \approx p(z \mid x;\theta)</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>Auto-Regressive DGMs</h2>
+        <div class="formula md">\mathbf{x} = (x_1, x_2, \ldots, x_d)</div>
+        <div class="formula md">p(\mathbf{x}) = \prod_{i=1}^{d} p(x_i \mid x_1, x_2, \ldots, x_{i-1}) = \prod_{i=1}^{d} p(x_i \mid \mathbf{x}_{&lt;i})</div>
+        <div class="formula md">\mathbf{x}_{&lt;i} = (x_1, x_2, \ldots, x_{i-1})^\top</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>Diffusion process</h2>
+        <div class="formula md">q(x_0,\ldots,x_N) = q(x_0)\,q(x_1 \mid x_0)\cdots q(x_N \mid x_{N-1})</div>
+        <div class="formula md">q(x_n \mid x_{n-1}) = \N(\sqrt{\alpha_n}\,x_{n-1}, \beta_n I), \qquad \alpha_n = 1-\beta_n</div>
+        <div class="formula md">x_N \approx \N(0, I)</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>Diffusion SDEs and ODEs</h2>
+        <div class="formula md">\mathrm{d}\bm{x}_t = \left[f(t)\bm{x}_t + \frac{g^2(t)}{\sigma_t}\bm{\epsilon}_\theta(\bm{x}_t,t)\right]\mathrm{d}t + g(t)\,\mathrm{d}\bar{\bm{w}}_t, \quad \bm{x}_T \sim \N(\bm{0}, \tilde\sigma^2\bm{I})</div>
+        <div class="formula md">\frac{\mathrm{d}\bm{x}_t}{\mathrm{d}t} = f(t)\bm{x}_t + \frac{g^2(t)}{2\sigma_t}\bm{\epsilon}_\theta(\bm{x}_t,t), \quad \bm{x}_T \sim \N(\bm{0}, \tilde\sigma^2\bm{I})</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>Training DPMs</h2>
+        <div class="formula md">q(x_0,\ldots,x_N) \approx p(x_0,\ldots,x_N)</div>
+        <div class="formula md">p(x_{n-1} \mid x_n) = \N(\mu_n(x_n), \sigma_n^2 I)</div>
+        <div class="formula md">\min_{\mu_n(\cdot),\,\sigma_n^2} KL(q(x_{0:N}) \,\|\, p(x_{0:N})) \;\Leftrightarrow\; \max_{\mu_n(\cdot),\,\sigma_n^2} \E_q \log \frac{p(x_{0:N})}{q(x_{1:N} \mid x_0)}</div>
+        <div class="formula md">\min_{s_n(\cdot)} \E_n \bar\beta_n \E_{q_n(x_n)} \|s_n(x_n) - \nabla \log q_n(x_n)\|^2</div>
+        <div class="formula md">\sigma_n^2 = \beta_n</div>
+        <div class="formula md">\mu_n(x_n) = \frac{1}{\sqrt{\alpha_n}}\left(x_n + \beta_n s_n(x_n)\right)</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>Analytic-DPM</h2>
+        <div class="formula md">p(x_{n-1} \mid x_n) = \N(\mu_n(x_n), \Sigma_n(x_n)), \qquad \Sigma_n(x_n) = \sigma_n^2</div>
+        <div class="formula md">\hat\epsilon_n(x_n) \approx \mathbf{E}_{q(x_0 \mid x_n)}[\epsilon_n]</div>
+        <div class="formula md">\mu_n^*(x_n) = \frac{1}{\sqrt{\alpha_n}}\left(x_n - \frac{\beta_n}{\sqrt{\bar\beta_n}}\mathbf{E}_{q(x_0 \mid x_n)}[\epsilon_n]\right)</div>
+        <div class="formula md">\sigma_n^{*2} = \frac{\beta_n}{\alpha_n}\left(1 - \frac{\beta_n}{\bar\beta_n}\E_{q_n(x_n)}\frac{\left\|\mathbf{E}_{q(x_0 \mid x_n)}[\epsilon_n]\right\|^2}{d}\right)</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>Log-SNR</h2>
+        <div class="formula md">q_{0t}(\bm{x}_t \mid \bm{x}_0) = \N(\bm{x}_t \mid \alpha(t)\bm{x}_0, \sigma^2(t)\bm{I})</div>
+        <div class="formula md">\text{SNR} = \alpha_t^2/\sigma_t^2, \qquad \lambda_t := \log(\alpha_t/\sigma_t)</div>
+        <div class="formula md">f(t) = \frac{\mathrm{d}\log\alpha_t}{\mathrm{d}t}, \qquad g^2(t) = -2\sigma_t^2\frac{\mathrm{d}\lambda_t}{\mathrm{d}t}</div>
+        <div class="formula md">\bm{x}_t = e^{\int_s^t f(\tau)\mathrm{d}\tau}\bm{x}_s + \int_s^t \left(e^{\int_\tau^t f(r)\mathrm{d}r}\frac{g^2(\tau)}{2\sigma_\tau}\bm{\epsilon}_\theta(\bm{x}_\tau,\tau)\right)\mathrm{d}\tau</div>
+        <div class="formula md">\bm{x}_t = \frac{\alpha_t}{\alpha_s}\bm{x}_s - \alpha_t \int_{\lambda_s}^{\lambda_t} e^{-\lambda}\hat{\bm{\epsilon}}_\theta(\hat{\bm{x}}_\lambda,\lambda)\,\mathrm{d}\lambda</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>DPM-Solver</h2>
+        <div class="formula md">\bm{x}_{t_{i-1}\to t_i} = \frac{\alpha_{t_i}}{\alpha_{t_{i-1}}}\tilde{\bm{x}}_{t_{i-1}} - \alpha_{t_i}\int_{\lambda_{t_{i-1}}}^{\lambda_{t_i}} e^{-\lambda}\hat{\bm{\epsilon}}_\theta(\hat{\bm{x}}_\lambda,\lambda)\,\mathrm{d}\lambda</div>
+        <div class="formula md">\hat{\bm{\epsilon}}_\theta(\hat{\bm{x}}_\lambda,\lambda) = \sum_{n=0}^{k-1}\frac{(\lambda-\lambda_{t_{i-1}})^n}{n!}\hat{\bm{\epsilon}}_\theta^{(n)}(\hat{\bm{x}}_{\lambda_{t_{i-1}}},\lambda_{t_{i-1}}) + \mathcal{O}((\lambda-\lambda_{t_{i-1}})^k)</div>
+        <div class="formula md">\bm{x}_{t_{i-1}\to t_i} = \frac{\alpha_{t_i}}{\alpha_{t_{i-1}}}\tilde{\bm{x}}_{t_{i-1}} - \alpha_{t_i}\sum_{n=0}^{k-1} \hat{\bm{\epsilon}}_\theta^{(n)}(\hat{\bm{x}}_{\lambda_{t_{i-1}}},\lambda_{t_{i-1}}) \int_{\lambda_{t_{i-1}}}^{\lambda_{t_i}} e^{-\lambda}\frac{(\lambda-\lambda_{t_{i-1}})^n}{n!}\,\mathrm{d}\lambda + \mathcal{O}(h_i^{k+1})</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>Variational Score Distillation</h2>
+        <div class="formula md">\theta_0 \sim \mu_0(\theta_0 \mid y), \qquad \mu_\infty = \mu^*</div>
+        <div class="formula md">\frac{\mathrm{d}\theta_\tau}{\mathrm{d}\tau} = -\mathbb{E}_{t,\epsilon,c}\left[\omega(t)\Big(-\sigma_t\nabla_{\bm{x}_t}\log p_t(\bm{x}_t \mid y) - \left(-\sigma_t\nabla_{\bm{x}_t}\log q_t^{\mu_\tau}(\bm{x}_t \mid c, y)\right)\Big)\frac{\partial \bm{g}(\theta_\tau, c)}{\partial\theta_\tau}\right]</div>
+      </section>
+
+      <section class="formula-group">
+        <h2>EEGSDE</h2>
+        <div class="formula md">E(\bm{z}, c, t) = E(R\bm{z}, c, t)</div>
+        <div class="formula md">\mathrm{d}\bm{z} = \Big[f(t)\bm{z} + g(t)^2\Big(\frac{1}{\sqrt{\bar\beta_{t|0}}}\bm{\epsilon}_\theta(\bm{z},t) + \big(\nabla_{\bm{x}}E(\bm{z},c,t) - \overline{\nabla_{\bm{x}}E(\bm{z},c,t)},\ \nabla_{\bm{h}}E(\bm{z},c,t)\big)\Big)\Big]\mathrm{d}t + g(t)\,\mathrm{d}(\tilde{\bm{w}}_{\bm{x}}, \tilde{\bm{w}}_{\bm{h}})</div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>Formulas from the slides, in the order they appear.</p>
+  </footer>
+</body>
+</html>
