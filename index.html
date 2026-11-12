@@ -25,15 +25,15 @@
         <svg class="sparkle small" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0 9.6 6.4 16 8 9.6 9.6 8 16 6.4 9.6 0 8 6.4 6.4Z"/></svg>
       </h2>
       <div class="featured-body" id="featured">
-        <article class="plugin">
-          <img class="plugin-icon" src="images/penguin-forms.svg" alt="" width="64" height="64">
-          <div class="plugin-text">
-            <h3 class="plugin-name"><a href="https://plugins.jetbrains.com/plugin/35992-penguin-forms" target="_blank" rel="noopener">Penguin Forms</a></h3>
-            <p class="card-text">A Visual Studio-style Windows Forms designer for Rider on Linux. Design forms by drag and drop, with the toolbox and the property grid. Your code stays exactly as Visual Studio writes it, so forms open unchanged on Windows.</p>
-            <p class="card-meta">Rider plugin · JetBrains Marketplace</p>
-          </div>
-          <a class="get-button" href="https://plugins.jetbrains.com/plugin/35992-penguin-forms" target="_blank" rel="noopener">Get from Marketplace</a>
-        </article>
+        <div class="plugin-embed">
+          <div id="penguin-forms-card" class="plugin-card"></div>
+          <div id="penguin-forms-install" class="plugin-install"></div>
+        </div>
+        <script src="https://plugins.jetbrains.com/assets/scripts/mp-widget.js"></script>
+        <script>
+          MarketplaceWidget.setupMarketplaceWidget('card', 35992, '#penguin-forms-card');
+          MarketplaceWidget.setupMarketplaceWidget('install', 35992, '#penguin-forms-install');
+        </script>
       </div>
     </section>
 

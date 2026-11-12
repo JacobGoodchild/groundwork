@@ -26,7 +26,8 @@ test.describe('home page', () => {
     await expect(page.locator('.research').getByText('Answers to some recent conjectures')).toBeVisible();
     const external = page.locator('a.card[href^="https://"]');
     await expect(external).toHaveCount(10);
-    await expect(page.locator('.featured .get-button')).toHaveAttribute('href', 'https://plugins.jetbrains.com/plugin/35992-penguin-forms');
+    await expect(page.locator('#penguin-forms-card')).toHaveCount(1);
+    await expect(page.locator('#penguin-forms-install')).toHaveCount(1);
     for (const link of await external.all()) await expect(link).toHaveAttribute('target', '_blank');
     await expect(page.getByRole('img', { name: /Apex Ring/ })).toBeVisible();
     await expect(page.locator('.tag', { hasText: 'Early Access – Still Under Construction' })).toHaveCount(1);
