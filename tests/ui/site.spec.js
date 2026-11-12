@@ -26,6 +26,7 @@ test.describe('home page', () => {
     await expect(page.locator('.research').getByText('Answers to some recent conjectures')).toBeVisible();
     const external = page.locator('a.card[href^="https://"]');
     await expect(external).toHaveCount(10);
+    await expect(page.locator('.featured .get-button')).toHaveAttribute('href', 'https://plugins.jetbrains.com/plugin/35992-penguin-forms');
     for (const link of await external.all()) await expect(link).toHaveAttribute('target', '_blank');
     await expect(page.getByRole('img', { name: /Apex Ring/ })).toBeVisible();
     await expect(page.locator('.tag', { hasText: 'Early Access – Still Under Construction' })).toHaveCount(1);
@@ -195,43 +196,3 @@ test.describe('simulator settings menu', () => {
   });
 });
 
-test.describe('database', () => {
-  test('the home page links to the database, which has two big buttons', async ({ page }) => {
-    await page.goto('./');
-    await page.locator('.area.database a.card').click();
-    await expect(page.locator('h1')).toHaveText('Database');
-    await expect(page.locator('.big-button')).toHaveCount(2);
-    await page.locator('.big-button.slides').click();
-    await expect(page.locator('h1')).toHaveText('Slides');
-  });
-
-  test('all 12 slides render their maths without errors and fit on the slide', async ({ page }) => {
-    await page.goto('database/slides/');
-    await expect(page.locator('#deck .slide')).toHaveCount(12);
-    await expect(page.locator('#deck .katex').first()).toBeVisible();
-    await expect(page.locator('.katex-error')).toHaveCount(0);
-    const overflowing = await page.$$eval('#deck .slide-inner', (els) => els.filter((e) => e.scrollHeight > e.clientHeight + 1).length);
-    expect(overflowing).toBe(0);
-  });
-
-  test('the slideshow shows one slide at a time and responds to the keyboard', async ({ page }) => {
-    await page.goto('database/slides/');
-    await page.click('#present');
-    await expect(page.locator('#show')).toBeVisible();
-    await expect(page.locator('#count')).toHaveText('1 / 12');
-    await page.keyboard.press('ArrowRight');
-    await expect(page.locator('#count')).toHaveText('2 / 12');
-    await expect(page.locator('#stage .slide h2')).toHaveText('Basic of Auto-Regressive DGMs');
-    await page.keyboard.press('End');
-    await expect(page.locator('#count')).toHaveText('12 / 12');
-    await page.keyboard.press('Escape');
-    await expect(page.locator('#show')).toBeHidden();
-  });
-
-  test('the data page lists the formulas', async ({ page }) => {
-    await page.goto('database/data/');
-    expect(await page.locator('.formula').count()).toBeGreaterThan(25);
-    await expect(page.locator('.formula .katex').first()).toBeVisible();
-    await expect(page.locator('.katex-error')).toHaveCount(0);
-  });
-});

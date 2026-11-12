@@ -10,7 +10,6 @@
   --computing-bg: #e5f4ee; --computing-line: #bfe1d3;
   --libraries-bg: #fcefe3; --libraries-line: #efd3b9;
   --games-bg: #fbe9ee;     --games-line: #efc9d4;
-  --database-bg: #e3f3f7;  --database-line: #b9dde7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,7 +20,6 @@
     --computing-bg: #1a2a25; --computing-line: #2f4d42;
     --libraries-bg: #2c231b; --libraries-line: #514030;
     --games-bg: #2d1f25;     --games-line: #533a45;
-    --database-bg: #18282d;  --database-line: #2d4a53;
   }
 }
 
@@ -69,13 +67,43 @@ main > .area-grid > .area { margin: 0; }
 .computing  { --bg: var(--computing-bg); --line: var(--computing-line); }
 .libraries  { --bg: var(--libraries-bg); --line: var(--libraries-line); }
 .games      { --bg: var(--games-bg);     --line: var(--games-line); }
-.database   { --bg: var(--database-bg);  --line: var(--database-line); }
 
 /* Featured: a little sparkle either side of the title, and room for what goes in later. */
 .featured .area-title { display: flex; align-items: center; gap: var(--space-2); }
 .sparkle { width: 15px; height: 15px; fill: var(--featured-star); flex: none; }
 .sparkle.small { width: 10px; height: 10px; align-self: flex-start; }
 .featured-body { min-height: 5rem; }
+
+.plugin {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.plugin-icon { width: 64px; height: 64px; flex: none; }
+.plugin-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.plugin-text p { margin: 0; }
+.plugin-name { margin: 0; font-size: var(--text-lg); }
+.plugin-name a { color: var(--text); text-decoration: none; }
+.plugin-name a:hover { color: var(--accent); }
+.get-button {
+  flex: none;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.get-button:hover { filter: brightness(1.1); }
+@media (max-width: 40rem) {
+  .plugin { flex-wrap: wrap; }
+  .get-button { width: 100%; text-align: center; }
+}
 
 /* Cards: the whole rectangle is the link. */
 .cards {
