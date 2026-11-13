@@ -106,6 +106,17 @@ test.describe('home page', () => {
     expect(width).toBeLessThanOrEqual(360);
   });
 
+  test('every page has the Groundwork tab icon', async ({ page, request }) => {
+    for (const path of ['./', 'assembly/', 'logic/']) {
+      await page.goto(path);
+      for (const selector of ['link[rel="icon"][type="image/svg+xml"]', 'link[rel="icon"][sizes="any"]', 'link[rel="apple-touch-icon"]']) {
+        const href = await page.locator(selector).getAttribute('href');
+        const response = await request.get(new URL(href, page.url()).href);
+        expect(response.ok(), `${path} ${href}`).toBe(true);
+      }
+    }
+  });
+
   test('the tools open from their cards', async ({ page }) => {
     await page.goto('./');
     await page.getByRole('link', { name: /Assembly simulator/ }).click();

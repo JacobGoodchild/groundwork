@@ -15,6 +15,7 @@ const types = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
 };
 
 createServer(async (req, res) => {
