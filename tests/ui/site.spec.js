@@ -7,16 +7,26 @@ const openSettings = async (page) => {
 };
 
 test.describe('home page', () => {
-  test('shows each area, with areas inside areas', async ({ page }) => {
+  // Zenodo is reached live from the page; the tests answer for it so they don't depend on the internet.
+  test.beforeEach(async ({ page }) => {
+    await page.route('https://zenodo.org/**', (route) => route.abort());
+  });
+
+  test('shows each area, with areas inside areas, and a menu to jump to them', async ({ page }) => {
     await page.goto('./');
     await expect(page).toHaveTitle('Groundwork');
     await expect(page.locator('h1')).toHaveText('Groundwork');
-    for (const name of ['Featured', 'Academic', 'Libraries', 'Games and interactive']) {
+    for (const name of ['Featured', 'Research', 'Learning', 'Libraries', 'Games and interactive']) {
       await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
     }
-    const academic = page.locator('.area.academic');
-    await expect(academic.getByRole('heading', { level: 3, name: 'Research' })).toBeVisible();
-    await expect(academic.getByRole('heading', { level: 3, name: 'A-level Computer Science' })).toBeVisible();
+    const learning = page.locator('.area.learning');
+    await expect(learning.getByRole('heading', { level: 3, name: 'A-level Computer Science' })).toBeVisible();
+    await expect(learning.getByRole('heading', { level: 3, name: 'Machine learning' })).toBeVisible();
+    const nav = page.getByRole('navigation', { name: 'Sections' });
+    for (const id of ['featured', 'research', 'learning', 'libraries', 'games']) {
+      await expect(nav.locator(`a[href="#${id}"]`)).toHaveCount(1);
+      await expect(page.locator(`#${id}`)).toHaveCount(1);
+    }
     await expect(page.locator('.site-header').getByRole('link', { name: 'See more' })).toHaveCount(0);
   });
 
@@ -25,12 +35,75 @@ test.describe('home page', () => {
     await expect(page.locator('.research a.card')).toHaveCount(5);
     await expect(page.locator('.research').getByText('Answers to some recent conjectures')).toBeVisible();
     const external = page.locator('a.card[href^="https://"]');
-    await expect(external).toHaveCount(10);
-    await expect(page.locator('#penguin-forms-card')).toHaveCount(1);
-    await expect(page.locator('#penguin-forms-install')).toHaveCount(1);
+    await expect(external).toHaveCount(11);
     for (const link of await external.all()) await expect(link).toHaveAttribute('target', '_blank');
+    await expect(page.getByRole('link', { name: /Learn ML/ })).toHaveAttribute('href', 'https://jacobgoodchild.github.io/learn-ml/');
+    await expect(page.locator('#penguin-forms-install')).toHaveCount(1);
     await expect(page.getByRole('img', { name: /Apex Ring/ })).toBeVisible();
     await expect(page.locator('.tag', { hasText: 'Early Access – Still Under Construction' })).toHaveCount(1);
+  });
+
+  test('shows the real figures from data/stats.json', async ({ page }) => {
+    await page.route('**/data/stats.json', (route) => route.fulfill({ json: {
+      updated: '2026-11-13T05:00:00Z',
+      plugin: { downloads: 1234, ratings: 0, rating: null, version: '0.1.0', updated: '2026-11-11' },
+      papers: { 23919117: { views: 38, downloads: 1 }, 23136851: { views: 60, downloads: 27 } },
+    } }));
+    await page.goto('./');
+    await expect(page.locator('#plugin-stats')).toBeVisible();
+    await expect(page.locator('#plugin-downloads')).toHaveText('1,234');
+    await expect(page.locator('#plugin-rating')).toHaveText('No ratings yet');
+    await expect(page.locator('#plugin-version')).toHaveText('0.1.0');
+    await expect(page.locator('[data-zenodo="23919117"] .paper-stats')).toHaveText('38 views1 download');
+    await expect(page.locator('[data-zenodo="23010606"] .paper-stats')).toBeEmpty();
+    await expect(page.locator('#research-totals')).toHaveText('5 preprints · 98 views · 28 downloads');
+    await expect(page.locator('#stats-updated')).toContainText('13 November 2026');
+  });
+
+  test('live Zenodo figures replace the saved ones', async ({ page }) => {
+    await page.unroute('https://zenodo.org/**');
+    await page.route('https://zenodo.org/api/records/*', (route) => {
+      const id = route.request().url().split('/').pop();
+      return id === '23919117'
+        ? route.fulfill({ json: { stats: { unique_views: 500, unique_downloads: 40 } }, headers: { 'Access-Control-Allow-Origin': '*' } })
+        : route.abort();
+    });
+    await page.route('**/data/stats.json', (route) => route.fulfill({ json: {
+      updated: '2026-11-13T05:00:00Z', plugin: null,
+      papers: { 23919117: { views: 38, downloads: 1 }, 23136851: { views: 60, downloads: 27 } },
+    } }));
+    await page.goto('./');
+    await expect(page.locator('[data-zenodo="23919117"] .paper-stats')).toHaveText('500 views40 downloads');
+    await expect(page.locator('[data-zenodo="23136851"] .paper-stats')).toHaveText('60 views27 downloads');
+    await expect(page.locator('#research-totals')).toHaveText('5 preprints · 560 views · 67 downloads');
+    await expect(page.locator('#plugin-stats')).toBeHidden();
+  });
+
+  test('a real rating is shown as stars', async ({ page }) => {
+    await page.route('**/data/stats.json', (route) => route.fulfill({ json: {
+      plugin: { downloads: 10, ratings: 3, rating: 4.7, version: '0.2.0' }, papers: {},
+    } }));
+    await page.goto('./');
+    await expect(page.locator('#plugin-rating')).toHaveText('4.7 from 3 ratings');
+    await expect(page.locator('#plugin-rating .star.on')).toHaveCount(5);
+    await expect(page.locator('#research-totals')).toBeHidden();
+  });
+
+  test('without the figures, nothing made up is shown', async ({ page }) => {
+    await page.route('**/data/stats.json', (route) => route.fulfill({ status: 404, body: 'Not found' }));
+    await page.goto('./');
+    await expect(page.getByRole('heading', { level: 3, name: 'Penguin Forms' })).toBeVisible();
+    await expect(page.locator('#plugin-stats')).toBeHidden();
+    await expect(page.locator('#research-totals')).toBeHidden();
+    await expect(page.locator('.paper-stats').first()).toBeEmpty();
+    await expect(page.locator('#stats-updated')).toBeHidden();
+  });
+
+  test('fits a phone screen without sideways scrolling', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto('./');
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width).toBeLessThanOrEqual(360);
   });
 
   test('the tools open from their cards', async ({ page }) => {

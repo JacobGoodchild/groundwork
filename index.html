@@ -4,128 +4,176 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Groundwork</title>
-  <meta name="description" content="Research papers, learning tools, libraries and games.">
+  <meta name="description" content="Research papers, learning tools, software and games.">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="assets/home.css">
+  <script type="module" src="assets/home.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
+  <header class="site-header home-header">
     <a class="site-name" href="./">Groundwork</a>
+    <nav class="home-nav" aria-label="Sections">
+      <a href="#featured">Featured</a>
+      <a href="#research">Research</a>
+      <a href="#learning">Learning</a>
+      <a href="#libraries">Libraries</a>
+      <a href="#games">Games</a>
+    </nav>
   </header>
 
   <main id="main" class="home">
-    <h1>Groundwork</h1>
-    <p class="home-intro">Research, learning tools, libraries and games.</p>
+    <div class="hero">
+      <h1>Groundwork</h1>
+      <p class="home-intro">Research papers, learning tools, software and games.</p>
+      <ul class="hero-links">
+        <li><a href="https://github.com/JacobGoodchild" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://jacobgoodchild.itch.io/" target="_blank" rel="noopener">itch.io</a></li>
+        <li><a href="https://plugins.jetbrains.com/vendor/jacob-goodchild" target="_blank" rel="noopener">JetBrains Marketplace</a></li>
+      </ul>
+    </div>
 
-    <section class="area featured" aria-labelledby="featured-title">
+    <section class="area featured" id="featured" aria-labelledby="featured-title">
       <h2 class="area-title" id="featured-title">
         <svg class="sparkle" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0 9.6 6.4 16 8 9.6 9.6 8 16 6.4 9.6 0 8 6.4 6.4Z"/></svg>
         Featured
         <svg class="sparkle small" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0 9.6 6.4 16 8 9.6 9.6 8 16 6.4 9.6 0 8 6.4 6.4Z"/></svg>
       </h2>
-      <div class="featured-body" id="featured">
-        <div class="plugin-embed">
-          <div id="penguin-forms-card" class="plugin-card"></div>
-          <div id="penguin-forms-install" class="plugin-install"></div>
+      <div class="feature">
+        <div class="feature-text">
+          <div class="feature-head">
+            <img class="feature-icon" src="images/penguin-forms-icon.svg" alt="" width="48" height="48">
+            <div>
+              <h3 class="feature-name">Penguin Forms</h3>
+              <p class="feature-kind">Plugin for JetBrains Rider · Free and open source</p>
+            </div>
+          </div>
+          <p class="feature-summary">A Visual Studio-style Windows Forms designer for Rider on Linux. Drag controls from the toolbox, set their properties and events, and switch between design and code with F7. The code stays exactly as Visual Studio writes it, so a form designed on Linux opens unchanged in Visual Studio on Windows.</p>
+          <dl class="stat-row" id="plugin-stats" hidden>
+            <div><dt>Downloads</dt><dd id="plugin-downloads"></dd></div>
+            <div><dt>Rating</dt><dd id="plugin-rating"></dd></div>
+            <div><dt>Version</dt><dd id="plugin-version"></dd></div>
+          </dl>
+          <div class="feature-actions">
+            <div id="penguin-forms-install" class="plugin-install"></div>
+            <a class="text-button" href="https://plugins.jetbrains.com/plugin/35992-penguin-forms" target="_blank" rel="noopener">Marketplace page</a>
+            <a class="text-button" href="https://github.com/JacobGoodchild/penguin-forms" target="_blank" rel="noopener">Source on GitHub</a>
+          </div>
         </div>
+        <a class="feature-shot" href="https://plugins.jetbrains.com/plugin/35992-penguin-forms" target="_blank" rel="noopener">
+          <img src="images/penguin-forms.jpg" alt="Penguin Forms in Rider: the toolbox on the left, a blank form in the designer, and the property grid on the right." width="1200" height="724">
+        </a>
         <script src="https://plugins.jetbrains.com/assets/scripts/mp-widget.js"></script>
         <script>
-          MarketplaceWidget.setupMarketplaceWidget('card', 35992, '#penguin-forms-card');
           MarketplaceWidget.setupMarketplaceWidget('install', 35992, '#penguin-forms-install');
         </script>
       </div>
     </section>
 
-    <section class="area academic" aria-labelledby="academic-title">
-      <h2 class="area-title" id="academic-title">Academic</h2>
-      <div class="area-grid">
-        <section class="area research" aria-labelledby="research-title">
-          <h3 class="area-title" id="research-title">Research</h3>
-          <ul class="cards">
-            <li><a class="card" href="https://zenodo.org/records/23919117" target="_blank" rel="noopener">
-              <span class="card-title">Answers to some recent conjectures and questions in classical analysis, with computer assistance</span>
-              <span class="card-meta">Preprint · Zenodo</span>
-            </a></li>
-            <li><a class="card" href="https://zenodo.org/records/23010606" target="_blank" rel="noopener">
-              <span class="card-title">Exact localization of Grover quantum walks on crystal lattices: transfer currents, a universal bound, and uniform-spanning-tree degree laws</span>
-              <span class="card-meta">Preprint · Zenodo</span>
-            </a></li>
-            <li><a class="card" href="https://zenodo.org/records/23010883" target="_blank" rel="noopener">
-              <span class="card-title">Exact height-one probabilities of three-dimensional Abelian sandpiles, spanning-tree entropies of the snub-square and Cairo lattices, and elementary resistor-network reductions</span>
-              <span class="card-meta">Preprint · Zenodo</span>
-            </a></li>
-            <li><a class="card" href="https://zenodo.org/records/23136697" target="_blank" rel="noopener">
-              <span class="card-title">Universal small-spin formulas for the shadow area, the capture cross-section and the spin-down of Kerr-like rotating black holes</span>
-              <span class="card-meta">Preprint · Zenodo</span>
-            </a></li>
-            <li><a class="card" href="https://zenodo.org/records/23136851" target="_blank" rel="noopener">
-              <span class="card-title">Exact results for Kerr black holes: shadow areas and perimeters, capture of slow particles, and escape from near extremal horizons</span>
-              <span class="card-meta">Preprint · Zenodo</span>
-            </a></li>
-          </ul>
-          <p class="area-note">These preprints were produced with extensive use of AI tools under my direction, as stated in each paper. They have not been peer reviewed.</p>
-        </section>
+    <section class="area research" id="research" aria-labelledby="research-title">
+      <div class="area-head">
+        <h2 class="area-title" id="research-title">Research</h2>
+        <p class="area-summary" id="research-totals" hidden></p>
+      </div>
+      <ul class="cards">
+        <li><a class="card paper" data-zenodo="23919117" href="https://zenodo.org/records/23919117" target="_blank" rel="noopener">
+          <span class="card-title">Answers to some recent conjectures and questions in classical analysis, with computer assistance</span>
+          <span class="paper-foot"><span class="card-meta">Preprint · Zenodo · <time datetime="2026-11-03">Nov 2026</time></span><span class="paper-stats"></span></span>
+        </a></li>
+        <li><a class="card paper" data-zenodo="23136851" href="https://zenodo.org/records/23136851" target="_blank" rel="noopener">
+          <span class="card-title">Exact results for Kerr black holes: shadow areas and perimeters, capture of slow particles, and escape from near extremal horizons</span>
+          <span class="paper-foot"><span class="card-meta">Preprint · Zenodo · <time datetime="2026-10-04">Oct 2026</time></span><span class="paper-stats"></span></span>
+        </a></li>
+        <li><a class="card paper" data-zenodo="23136697" href="https://zenodo.org/records/23136697" target="_blank" rel="noopener">
+          <span class="card-title">Universal small-spin formulas for the shadow area, the capture cross-section and the spin-down of Kerr-like rotating black holes</span>
+          <span class="paper-foot"><span class="card-meta">Preprint · Zenodo · <time datetime="2026-10-04">Oct 2026</time></span><span class="paper-stats"></span></span>
+        </a></li>
+        <li><a class="card paper" data-zenodo="23010606" href="https://zenodo.org/records/23010606" target="_blank" rel="noopener">
+          <span class="card-title">Exact localization of Grover quantum walks on crystal lattices: transfer currents, a universal bound, and uniform-spanning-tree degree laws</span>
+          <span class="paper-foot"><span class="card-meta">Preprint · Zenodo · <time datetime="2026-09-28">Sep 2026</time></span><span class="paper-stats"></span></span>
+        </a></li>
+        <li><a class="card paper" data-zenodo="23010883" href="https://zenodo.org/records/23010883" target="_blank" rel="noopener">
+          <span class="card-title">Exact height-one probabilities of three-dimensional Abelian sandpiles, spanning-tree entropies of the snub-square and Cairo lattices, and elementary resistor-network reductions</span>
+          <span class="paper-foot"><span class="card-meta">Preprint · Zenodo · <time datetime="2026-09-28">Sep 2026</time></span><span class="paper-stats"></span></span>
+        </a></li>
+      </ul>
+      <p class="area-note">These preprints were produced with extensive use of AI tools under my direction, as stated in each paper. They have not been peer reviewed.</p>
+    </section>
 
+    <section class="area learning" id="learning" aria-labelledby="learning-title">
+      <h2 class="area-title" id="learning-title">Learning</h2>
+      <div class="area-grid learning-grid">
         <section class="area computing" aria-labelledby="computing-title">
           <h3 class="area-title" id="computing-title">A-level Computer Science</h3>
-          <ul class="cards">
+          <ul class="cards two-up">
             <li><a class="card" href="assembly/">
               <span class="card-title">Assembly simulator</span>
               <span class="card-text">Write programs in the AQA assembly language and run them one instruction at a time.</span>
+              <span class="card-meta">Tool · AQA 7517</span>
             </a></li>
             <li><a class="card" href="logic/">
               <span class="card-title">Logic gates</span>
               <span class="card-text">Build circuits from logic gates and see their truth tables and Boolean expressions.</span>
+              <span class="card-meta">Tool · AQA 7517</span>
+            </a></li>
+          </ul>
+        </section>
+
+        <section class="area ml" aria-labelledby="ml-title">
+          <h3 class="area-title" id="ml-title">Machine learning</h3>
+          <ul class="cards">
+            <li><a class="card" href="https://jacobgoodchild.github.io/learn-ml/" target="_blank" rel="noopener">
+              <span class="card-title">Learn ML</span>
+              <span class="card-text">A map of the maths behind diffusion models, from A-level maths upwards. Click part of a formula to open the idea underneath it.</span>
+              <span class="card-meta">Website</span>
             </a></li>
           </ul>
         </section>
       </div>
     </section>
 
-    <div class="area-grid">
-      <section class="area libraries" aria-labelledby="libraries-title">
-        <h2 class="area-title" id="libraries-title">Libraries</h2>
-        <ul class="cards">
-          <li><a class="card" href="https://www.nuget.org/packages/TorchSharpVisual" target="_blank" rel="noopener">
-            <span class="card-title">TorchSharpVisual</span>
-            <span class="card-text">Draws colour-coded architecture diagrams of TorchSharp neural network models.</span>
-            <span class="card-meta">NuGet package for .NET</span>
-          </a></li>
-          <li><a class="card" href="https://www.nuget.org/packages/TorchSharpSummary" target="_blank" rel="noopener">
-            <span class="card-title">TorchSharpSummary</span>
-            <span class="card-text">Prints a layer-by-layer summary of a TorchSharp model: shapes, parameter counts, memory and operation estimates.</span>
-            <span class="card-meta">NuGet package for .NET</span>
-          </a></li>
-        </ul>
-      </section>
+    <section class="area libraries" id="libraries" aria-labelledby="libraries-title">
+      <h2 class="area-title" id="libraries-title">Libraries</h2>
+      <ul class="cards two-up">
+        <li><a class="card" href="https://www.nuget.org/packages/TorchSharpVisual" target="_blank" rel="noopener">
+          <span class="card-title">TorchSharpVisual</span>
+          <span class="card-text">Draws colour-coded architecture diagrams of TorchSharp neural network models.</span>
+          <span class="card-meta">NuGet package for .NET</span>
+        </a></li>
+        <li><a class="card" href="https://www.nuget.org/packages/TorchSharpSummary" target="_blank" rel="noopener">
+          <span class="card-title">TorchSharpSummary</span>
+          <span class="card-text">Prints a layer-by-layer summary of a TorchSharp model: shapes, parameter counts, memory and operation estimates.</span>
+          <span class="card-meta">NuGet package for .NET</span>
+        </a></li>
+      </ul>
+    </section>
 
-      <section class="area games" aria-labelledby="games-title">
-        <h2 class="area-title" id="games-title">Games and interactive</h2>
-        <ul class="cards">
-          <li><a class="card has-image" href="https://jacobgoodchild.itch.io/apex-ring" target="_blank" rel="noopener">
-            <img src="images/apex-ring.jpg" alt="A teal hypercar on a rainy mountain track, with the Apex Ring title." width="840" height="667" loading="lazy">
-            <span class="card-title">Apex Ring</span>
-            <span class="card-text">A 3D hypercar racing game in the browser.</span>
-            <span class="card-meta">Browser game · itch.io</span>
-          </a></li>
-          <li><a class="card" href="https://jacobgoodchild.github.io/desk-piano/" target="_blank" rel="noopener">
-            <span class="card-title">Desk Piano <span class="tag">Early Access – Still Under Construction</span></span>
-            <span class="card-text">Play piano by tapping a printed paper keyboard, using a webcam and microphone.</span>
-            <span class="card-meta">Web app</span>
-          </a></li>
-          <li><a class="card" href="https://jacobgoodchild.github.io/air-violin/" target="_blank" rel="noopener">
-            <span class="card-title">Air Violin</span>
-            <span class="card-text">Play a violin in the air using a webcam.</span>
-            <span class="card-meta">Web app</span>
-          </a></li>
-        </ul>
-      </section>
-    </div>
+    <section class="area games" id="games" aria-labelledby="games-title">
+      <h2 class="area-title" id="games-title">Games and interactive</h2>
+      <ul class="cards games-grid">
+        <li class="games-lead"><a class="card has-image" href="https://jacobgoodchild.itch.io/apex-ring" target="_blank" rel="noopener">
+          <img src="images/apex-ring.jpg" alt="A teal hypercar on a rainy mountain track, with the Apex Ring title." width="840" height="667" loading="lazy">
+          <span class="card-title">Apex Ring</span>
+          <span class="card-text">A 3D hypercar racing game in the browser.</span>
+          <span class="card-meta">Browser game · itch.io</span>
+        </a></li>
+        <li><a class="card" href="https://jacobgoodchild.github.io/desk-piano/" target="_blank" rel="noopener">
+          <span class="card-title">Desk Piano <span class="tag">Early Access – Still Under Construction</span></span>
+          <span class="card-text">Play piano by tapping a printed paper keyboard, using a webcam and microphone.</span>
+          <span class="card-meta">Web app</span>
+        </a></li>
+        <li><a class="card" href="https://jacobgoodchild.github.io/air-violin/" target="_blank" rel="noopener">
+          <span class="card-title">Air Violin</span>
+          <span class="card-text">Play a violin in the air using a webcam.</span>
+          <span class="card-meta">Web app</span>
+        </a></li>
+      </ul>
+    </section>
   </main>
 
   <footer class="site-footer">
     <p>The A-level tools follow the AQA Computer Science specification (7517). They are not made or endorsed by AQA.</p>
+    <p id="stats-updated" hidden></p>
   </footer>
 </body>
 </html>
